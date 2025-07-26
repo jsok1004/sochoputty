@@ -1,0 +1,59 @@
+<Window x:Class="SochoPutty.Windows.ManageConnectionsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="연결 관리" Height="500" Width="700"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        
+        <!-- 연결 목록 -->
+        <DataGrid Grid.Row="0" Grid.Column="0" Name="dgConnections" 
+                  AutoGenerateColumns="False"
+                  SelectionMode="Single"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  IsReadOnly="True"
+                  SelectionChanged="DataGrid_SelectionChanged"
+                  MouseDoubleClick="DataGrid_MouseDoubleClick">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="이름" Binding="{Binding Name}" Width="150"/>
+                <DataGridTextColumn Header="호스트" Binding="{Binding Hostname}" Width="200"/>
+                <DataGridTextColumn Header="포트" Binding="{Binding Port}" Width="60"/>
+                <DataGridTextColumn Header="사용자" Binding="{Binding Username}" Width="100"/>
+                <DataGridTextColumn Header="타입" Binding="{Binding ConnectionType}" Width="80"/>
+                <DataGridTextColumn Header="설명" Binding="{Binding Description}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        
+        <!-- 버튼 패널 -->
+        <StackPanel Grid.Row="0" Grid.Column="1" Margin="10,0,0,0" Width="120">
+            <Button Name="btnAdd" Content="새로 만들기" Margin="0,0,0,10" Height="30" Click="Add_Click"/>
+            <Button Name="btnEdit" Content="편집" Margin="0,0,0,10" Height="30" Click="Edit_Click" IsEnabled="False"/>
+            <Button Name="btnDuplicate" Content="복제" Margin="0,0,0,10" Height="30" Click="Duplicate_Click" IsEnabled="False"/>
+            <Button Name="btnDelete" Content="삭제" Margin="0,0,0,10" Height="30" Click="Delete_Click" IsEnabled="False"/>
+            <Separator Margin="0,10"/>
+            <Button Name="btnMoveUp" Content="위로 ↑" Margin="0,0,0,10" Height="30" Click="MoveUp_Click" IsEnabled="False"/>
+            <Button Name="btnMoveDown" Content="아래로 ↓" Margin="0,0,0,10" Height="30" Click="MoveDown_Click" IsEnabled="False"/>
+            <Separator Margin="0,10"/>
+            <Button Name="btnConnect" Content="연결" Margin="0,0,0,10" Height="30" Click="Connect_Click" IsEnabled="False" FontWeight="Bold"/>
+            <Separator Margin="0,10"/>
+            <Button Name="btnImport" Content="가져오기" Margin="0,0,0,10" Height="30" Click="Import_Click"/>
+            <Button Name="btnExport" Content="내보내기" Margin="0,0,0,10" Height="30" Click="Export_Click"/>
+        </StackPanel>
+        
+        <!-- 하단 버튼 영역 -->
+        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <TextBlock Text="총 " VerticalAlignment="Center"/>
+            <TextBlock Name="txtConnectionCount" Text="0" VerticalAlignment="Center" FontWeight="Bold"/>
+            <TextBlock Text="개의 연결" VerticalAlignment="Center" Margin="0,0,20,0"/>
+            <Button Name="btnClose" Content="닫기" Width="80" Click="Close_Click"/>
+        </StackPanel>
+    </Grid>
+</Window> 
