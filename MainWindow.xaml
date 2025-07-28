@@ -19,8 +19,10 @@
                 <MenuItem Header="종료(_X)" Click="Exit_Click"/>
             </MenuItem>
             <MenuItem Header="보기(_V)">
-                <MenuItem Header="수직 분할(_V)" Click="SplitVertical_Click"/>
-                <MenuItem Header="수평 분할(_H)" Click="SplitHorizontal_Click"/>
+                <MenuItem Header="가로 분할(_H)" Click="SplitHorizontal_Click"/>
+                <MenuItem Header="새로 분할(_V)" Click="SplitVertical_Click"/>
+                <MenuItem Header="4화면 분할(_Q)" Click="SplitQuad_Click"/>
+                <Separator/>
                 <MenuItem Header="분할 해제(_U)" Click="UnsplitAll_Click"/>
             </MenuItem>
             <MenuItem Header="도구(_T)">
@@ -62,90 +64,94 @@
         </ToolBar>
         
         <!-- 메인 컨텐츠 영역 -->
-        <TabControl Grid.Row="2" Name="tabControl" 
-                    TabStripPlacement="Top"
-                    SelectionChanged="TabControl_SelectionChanged">
-            <!-- 기본 내용 영역 - 여기서 내용을 수정하세요 -->
-            <Grid Background="#f8f9fa">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock Text="SOCHO PuTTY" FontSize="28" FontWeight="Bold" 
-                             HorizontalAlignment="Center" Margin="0,0,0,20"
-                             Foreground="#343a40"/>
-                    <TextBlock Text="PuTTY 연결을 쉽고 편리하게 관리하세요" FontSize="16" 
-                             HorizontalAlignment="Center" Margin="0,0,0,40"
-                             Foreground="#6c757d"/>
-                    
-                    <!-- 빠른 연결 목록 -->
-                    <Border Background="White" CornerRadius="8" Padding="20" MaxWidth="900" 
-                            BorderBrush="#dee2e6" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="빠른 연결" FontSize="18" FontWeight="SemiBold" 
-                                     Margin="0,0,0,15" Foreground="#495057"/>
-                            
-                            <!-- 연결 목록 -->
-                            <ListBox Name="lstQuickConnections" BorderThickness="0" 
-                                     SelectionMode="Single" MaxHeight="400"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     MouseDoubleClick="QuickConnectionsList_DoubleClick">
-                                <ListBox.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal"/>
-                                    </ItemsPanelTemplate>
-                                </ListBox.ItemsPanel>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#f8f9fa" Margin="5" Padding="10,8" 
-                                                CornerRadius="5" BorderBrush="#e9ecef" BorderThickness="1"
-                                                Width="180" Height="90">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Style.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="#e9ecef"/>
-                                                        </Trigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="*"/>
-                                                    <RowDefinition Height="Auto"/>
-                                                </Grid.RowDefinitions>
-                                                <StackPanel Grid.Row="0">
-                                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" 
-                                                             FontSize="13" Foreground="#212529" 
-                                                             TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Foreground="#6c757d" FontSize="11" 
-                                                             TextTrimming="CharacterEllipsis">
-                                                        <Run Text="{Binding Hostname}"/>
-                                                        <Run Text=":"/>
-                                                        <Run Text="{Binding Port}"/>
-                                                    </TextBlock>
-                                                    <TextBlock Text="{Binding ConnectionType}" FontSize="10" 
-                                                             Foreground="#868e96" FontStyle="Italic"/>
-                                                    <TextBlock Text="{Binding Description}" FontSize="10" 
-                                                             Foreground="#adb5bd" TextTrimming="CharacterEllipsis"
-                                                             MaxHeight="12"/>
-                                                </StackPanel>
-                                                <Button Grid.Row="1" Content="연결" Tag="{Binding}" Click="QuickConnect_ButtonClick"
-                                                        Background="#007bff" Foreground="White" BorderThickness="0"
-                                                        Padding="8,3" Margin="0,5,0,0" HorizontalAlignment="Stretch"
-                                                        FontSize="11"/>
-                                            </Grid>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                            
-                            <!-- 연결이 없을 때 메시지 -->
-                            <TextBlock Name="txtNoConnections" Text="저장된 연결이 없습니다. 새 연결을 추가해보세요."
-                                     HorizontalAlignment="Center" Margin="20" FontStyle="Italic"
-                                     Foreground="#6c757d" Visibility="Collapsed"/>
-                        </StackPanel>
-                    </Border>
-                    
-                </StackPanel>
-            </Grid>
-        </TabControl>
+        <Grid Grid.Row="2" Name="splitContainer">
+            <!-- 분할 영역들이 동적으로 추가될 Grid -->
+            <TabControl Name="tabControl" 
+                        TabStripPlacement="Top"
+                        SelectionChanged="TabControl_SelectionChanged"
+                        PreviewMouseRightButtonUp="TabControl_RightClick">
+                <!-- 기본 내용 영역 - 여기서 내용을 수정하세요 -->
+                <Grid Background="#f8f9fa">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="SOCHO PuTTY" FontSize="28" FontWeight="Bold" 
+                                 HorizontalAlignment="Center" Margin="0,0,0,20"
+                                 Foreground="#343a40"/>
+                        <TextBlock Text="PuTTY 연결을 쉽고 편리하게 관리하세요" FontSize="16" 
+                                 HorizontalAlignment="Center" Margin="0,0,0,40"
+                                 Foreground="#6c757d"/>
+                        
+                        <!-- 빠른 연결 목록 -->
+                        <Border Background="White" CornerRadius="8" Padding="20" MaxWidth="900" 
+                                BorderBrush="#dee2e6" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="빠른 연결" FontSize="18" FontWeight="SemiBold" 
+                                         Margin="0,0,0,15" Foreground="#495057"/>
+                                
+                                <!-- 연결 목록 -->
+                                <ListBox Name="lstQuickConnections" BorderThickness="0" 
+                                         SelectionMode="Single" MaxHeight="400"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         MouseDoubleClick="QuickConnectionsList_DoubleClick">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#f8f9fa" Margin="5" Padding="10,8" 
+                                                    CornerRadius="5" BorderBrush="#e9ecef" BorderThickness="1"
+                                                    Width="180" Height="90">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#e9ecef"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <Grid.RowDefinitions>
+                                                        <RowDefinition Height="*"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                    </Grid.RowDefinitions>
+                                                    <StackPanel Grid.Row="0">
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" 
+                                                                 FontSize="13" Foreground="#212529" 
+                                                                 TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Foreground="#6c757d" FontSize="11" 
+                                                                 TextTrimming="CharacterEllipsis">
+                                                            <Run Text="{Binding Hostname}"/>
+                                                            <Run Text=":"/>
+                                                            <Run Text="{Binding Port}"/>
+                                                        </TextBlock>
+                                                        <TextBlock Text="{Binding ConnectionType}" FontSize="10" 
+                                                                 Foreground="#868e96" FontStyle="Italic"/>
+                                                        <TextBlock Text="{Binding Description}" FontSize="10" 
+                                                                 Foreground="#adb5bd" TextTrimming="CharacterEllipsis"
+                                                                 MaxHeight="12"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Row="1" Content="연결" Tag="{Binding}" Click="QuickConnect_ButtonClick"
+                                                            Background="#007bff" Foreground="White" BorderThickness="0"
+                                                            Padding="8,3" Margin="0,5,0,0" HorizontalAlignment="Stretch"
+                                                            FontSize="11"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                
+                                <!-- 연결이 없을 때 메시지 -->
+                                <TextBlock Name="txtNoConnections" Text="저장된 연결이 없습니다. 새 연결을 추가해보세요."
+                                         HorizontalAlignment="Center" Margin="20" FontStyle="Italic"
+                                         Foreground="#6c757d" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </Border>
+                        
+                    </StackPanel>
+                </Grid>
+            </TabControl>
+        </Grid>
     </Grid>
 </Window> 

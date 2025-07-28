@@ -17,6 +17,7 @@ namespace SochoPutty
         private ConnectionManager connectionManager = null!;
         private SettingsManager settingsManager = null!;
         private List<PuttySession> activeSessions = null!;
+        private SplitManager splitManager = null!;
 
         public MainWindow()
         {
@@ -30,6 +31,20 @@ namespace SochoPutty
             connectionManager = new ConnectionManager();
             settingsManager = new SettingsManager();
             activeSessions = new List<PuttySession>();
+            
+            // SplitManager 초기화 - 기본 TabControl 복원
+            splitManager = new SplitManager(splitContainer);
+            splitManager.TabControlSelectionChanged += TabControl_SelectionChanged;
+            RestoreDefaultTabControl();
+        }
+
+        private void RestoreDefaultTabControl()
+        {
+            // 기본 TabControl이 splitContainer에 없을 때만 추가
+            if (!splitContainer.Children.Contains(tabControl))
+            {
+                splitContainer.Children.Add(tabControl);
+            }
         }
 
         private void LoadQuickConnections()
@@ -149,6 +164,19 @@ namespace SochoPutty
                 activeSessions.Add(session);
                 DebugLogger.LogDebug($"PuttySession 생성 완료. 활성 세션 수: {activeSessions.Count}");
 
+                // 탭을 추가할 TabControl 결정
+                TabControl targetTabControl;
+                if (splitManager.CurrentMode == SplitMode.None)
+                {
+                    // 분할되지 않은 상태 - 기본 TabControl 사용
+                    targetTabControl = tabControl;
+                }
+                else
+                {
+                    // 분할된 상태 - 활성 분할 영역의 TabControl 사용
+                    targetTabControl = splitManager.GetActiveTabControl() ?? throw new InvalidOperationException("활성 분할 영역을 찾을 수 없습니다.");
+                }
+
                 // 새 탭 생성
                 var tabItem = new TabItem();
                 tabItem.Header = CreateTabHeader(connection.Name, session);
@@ -172,13 +200,13 @@ namespace SochoPutty
                 };
 
                 tabItem.Content = windowsFormsHost;
-                tabControl.Items.Add(tabItem);
-                tabControl.SelectedItem = tabItem;
+                targetTabControl.Items.Add(tabItem);
+                targetTabControl.SelectedItem = tabItem;
 
                 DebugLogger.LogDebug($"탭 생성 완료. Panel Handle: {panel.Handle}");
 
                 // PuTTY 프로세스 시작
-                var success = await session.StartPutty(panel.Handle);
+                var success = await session.StartPutty(panel.Handle).ConfigureAwait(false);
                 
                 if (success)
                 {
@@ -243,23 +271,55 @@ namespace SochoPutty
 
         private void SplitVertical_Click(object sender, RoutedEventArgs e)
         {
-            // 수직 분할 구현 (향후 구현)
-            MessageBox.Show("수직 분할 기능은 향후 버전에서 제공됩니다.", "정보", 
-                          MessageBoxButton.OK, MessageBoxImage.Information);
+            DebugLogger.LogInfo("새로 분할(수직 분할) 실행");
+            ApplySplitMode(SplitMode.Vertical);
         }
 
         private void SplitHorizontal_Click(object sender, RoutedEventArgs e)
         {
-            // 수평 분할 구현 (향후 구현)
-            MessageBox.Show("수평 분할 기능은 향후 버전에서 제공됩니다.", "정보", 
-                          MessageBoxButton.OK, MessageBoxImage.Information);
+            DebugLogger.LogInfo("가로 분할(수평 분할) 실행");
+            ApplySplitMode(SplitMode.Horizontal);
+        }
+
+        private void SplitQuad_Click(object sender, RoutedEventArgs e)
+        {
+            DebugLogger.LogInfo("4화면 분할 실행");
+            ApplySplitMode(SplitMode.Quad);
         }
 
         private void UnsplitAll_Click(object sender, RoutedEventArgs e)
         {
-            // 분할 해제 구현 (향후 구현)
-            MessageBox.Show("분할 해제 기능은 향후 버전에서 제공됩니다.", "정보", 
-                          MessageBoxButton.OK, MessageBoxImage.Information);
+            DebugLogger.LogInfo("분할 해제 실행");
+            ApplySplitMode(SplitMode.None);
+        }
+
+        private void ApplySplitMode(SplitMode mode)
+        {
+            try
+            {
+                if (mode == SplitMode.None)
+                {
+                    // 분할 해제 - 기본 TabControl로 복원
+                    splitManager.ClearSplit();
+                    RestoreDefaultTabControl();
+                    DebugLogger.LogInfo("분할 해제 완료");
+                }
+                else
+                {
+                    // 기본 TabControl 제거
+                    splitContainer.Children.Remove(tabControl);
+                    
+                    // 새로운 분할 모드 적용
+                    splitManager.ApplySplit(mode);
+                    DebugLogger.LogInfo($"분할 모드 적용 완료: {mode}");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError($"분할 모드 적용 중 오류: {mode}", ex);
+                MessageBox.Show($"분할 기능 실행 중 오류가 발생했습니다: {ex.Message}", 
+                              "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Settings_Click(object sender, RoutedEventArgs e)
@@ -314,7 +374,7 @@ namespace SochoPutty
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // 탭 변경 시 포커스 설정 및 크기 재조정
-            if (e.Source == tabControl && tabControl.SelectedItem is TabItem selectedTab)
+            if (e.Source is TabControl sourceTabControl && sourceTabControl.SelectedItem is TabItem selectedTab)
             {
                 // 선택된 탭이 PuTTY 세션을 포함하는 탭인지 확인
                 if (selectedTab.Tag is PuttySession session)
@@ -353,6 +413,11 @@ namespace SochoPutty
                     }), System.Windows.Threading.DispatcherPriority.Background);
                 }
             }
+        }
+
+        private void TabControl_RightClick(object sender, RoutedEventArgs e)
+        {
+            // 우클릭 컨텍스트 메뉴 (향후 구현 가능)
         }
 
         private StackPanel CreateTabHeader(string title, PuttySession session)
@@ -404,22 +469,45 @@ namespace SochoPutty
             {
                 DebugLogger.LogInfo($"탭 닫기 시작: {session.ConnectionInfo.Name}");
                 
-                // 해당 탭 찾기 - 안전한 타입 체크 추가
+                // 해당 탭 찾기 - 모든 TabControl에서 검색
                 TabItem? tabToRemove = null;
-                foreach (var item in tabControl.Items)
+                TabControl? parentTabControl = null;
+
+                if (splitManager.CurrentMode == SplitMode.None)
                 {
-                    if (item is TabItem tab && tab.Tag == session)
+                    // 분할되지 않은 상태 - 기본 TabControl에서 검색
+                    foreach (var item in tabControl.Items)
                     {
-                        tabToRemove = tab;
-                        DebugLogger.LogDebug($"닫을 탭 발견: {session.ConnectionInfo.Name}");
-                        break;
+                        if (item is TabItem tab && tab.Tag == session)
+                        {
+                            tabToRemove = tab;
+                            parentTabControl = tabControl;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    // 분할된 상태 - 모든 분할 영역의 TabControl에서 검색
+                    foreach (var splitPane in splitManager.SplitPanes)
+                    {
+                        foreach (var item in splitPane.TabControl.Items)
+                        {
+                            if (item is TabItem tab && tab.Tag == session)
+                            {
+                                tabToRemove = tab;
+                                parentTabControl = splitPane.TabControl;
+                                break;
+                            }
+                        }
+                        if (tabToRemove != null) break;
                     }
                 }
 
-                if (tabToRemove != null)
+                if (tabToRemove != null && parentTabControl != null)
                 {
                     // 탭 제거
-                    tabControl.Items.Remove(tabToRemove);
+                    parentTabControl.Items.Remove(tabToRemove);
                     DebugLogger.LogDebug($"탭 제거 완료: {session.ConnectionInfo.Name}");
                     
                     // 세션 정리
