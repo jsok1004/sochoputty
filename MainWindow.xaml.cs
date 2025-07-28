@@ -37,6 +37,21 @@ namespace SochoPutty
             var connections = connectionManager.GetAllConnections();
             cmbQuickConnect.ItemsSource = connections;
             cmbQuickConnect.DisplayMemberPath = "Name";
+            
+            // 메인 화면의 빠른 연결 목록 업데이트
+            lstQuickConnections.ItemsSource = connections;
+            
+            // 연결이 없을 때 메시지 표시
+            if (connections.Count == 0)
+            {
+                txtNoConnections.Visibility = Visibility.Visible;
+                lstQuickConnections.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                txtNoConnections.Visibility = Visibility.Collapsed;
+                lstQuickConnections.Visibility = Visibility.Visible;
+            }
         }
 
         private void NewConnection_Click(object sender, RoutedEventArgs e)
@@ -94,6 +109,24 @@ namespace SochoPutty
         private void QuickConnect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             // 선택 변경 시 처리할 로직 (필요시 구현)
+        }
+
+        private void QuickConnect_ButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is ConnectionInfo connection)
+            {
+                DebugLogger.LogInfo($"빠른 연결 버튼 클릭: {connection.Name}");
+                CreateNewSession(connection);
+            }
+        }
+
+        private void QuickConnectionsList_DoubleClick(object sender, RoutedEventArgs e)
+        {
+            if (lstQuickConnections.SelectedItem is ConnectionInfo connection)
+            {
+                DebugLogger.LogInfo($"빠른 연결 목록 더블클릭: {connection.Name}");
+                CreateNewSession(connection);
+            }
         }
 
         private async void CreateNewSession(ConnectionInfo connection)

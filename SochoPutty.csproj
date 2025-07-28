@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <AssemblyTitle>Socho Putty Manager</AssemblyTitle>
     <AssemblyDescription>Advanced PuTTY connection manager with multi-tab support</AssemblyDescription>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>

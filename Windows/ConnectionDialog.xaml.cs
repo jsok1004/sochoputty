@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -158,11 +160,19 @@ namespace SochoPutty.Windows
             {
                 var testConnection = CreateConnectionFromInput();
                 
-                // 간단한 연결 테스트 (실제로는 소켓 연결 등을 시도해야 함)
-                await System.Threading.Tasks.Task.Delay(2000); // 시뮬레이션
-
-                txtTestResult.Text = "연결 테스트 성공!";
-                txtTestResult.Foreground = System.Windows.Media.Brushes.Green;
+                // 실제 TCP 소켓 연결 테스트
+                bool isConnected = await TestTcpConnection(testConnection.Hostname, testConnection.Port);
+                
+                if (isConnected)
+                {
+                    txtTestResult.Text = $"연결 테스트 성공! ({testConnection.Hostname}:{testConnection.Port})";
+                    txtTestResult.Foreground = System.Windows.Media.Brushes.Green;
+                }
+                else
+                {
+                    txtTestResult.Text = $"연결 실패: 호스트에 연결할 수 없습니다.";
+                    txtTestResult.Foreground = System.Windows.Media.Brushes.Red;
+                }
             }
             catch (Exception ex)
             {
@@ -172,6 +182,41 @@ namespace SochoPutty.Windows
             finally
             {
                 btnTestConnection.IsEnabled = true;
+            }
+        }
+
+        private async Task<bool> TestTcpConnection(string hostname, int port)
+        {
+            try
+            {
+                using (var tcpClient = new TcpClient())
+                {
+                    // 5초 타임아웃 설정
+                    var connectTask = tcpClient.ConnectAsync(hostname, port);
+                    var timeoutTask = Task.Delay(5000);
+                    
+                    var completedTask = await Task.WhenAny(connectTask, timeoutTask);
+                    
+                    if (completedTask == timeoutTask)
+                    {
+                        throw new TimeoutException("연결 시간이 초과되었습니다.");
+                    }
+                    
+                    await connectTask; // 실제 연결이 완료될 때까지 대기
+                    return tcpClient.Connected;
+                }
+            }
+            catch (SocketException ex)
+            {
+                throw new Exception($"소켓 오류: {ex.Message}");
+            }
+            catch (TimeoutException)
+            {
+                throw new Exception("연결 시간 초과 (5초)");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"연결 오류: {ex.Message}");
             }
         }
 
