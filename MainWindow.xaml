@@ -19,11 +19,13 @@
                 <MenuItem Header="종료(_X)" Click="Exit_Click"/>
             </MenuItem>
             <MenuItem Header="보기(_V)">
-                <MenuItem Header="가로 분할(_H)" Click="SplitHorizontal_Click"/>
-                <MenuItem Header="새로 분할(_V)" Click="SplitVertical_Click"/>
-                <MenuItem Header="4화면 분할(_Q)" Click="SplitQuad_Click"/>
+                <MenuItem Header="가로 분할(_A)" Click="SplitHorizontal_Click"/>
+                <MenuItem Header="새로 분할(_S)" Click="SplitVertical_Click"/>
+                <MenuItem Header="4화면 분할(_D)" Click="SplitQuad_Click"/>
                 <Separator/>
-                <MenuItem Header="분할 해제(_U)" Click="UnsplitAll_Click"/>
+                <MenuItem Header="분할 해제(_F)" Click="UnsplitAll_Click"/>
+                <Separator/>
+                <MenuItem Header="활성 세션 상태(_T)" Click="ShowActiveSessionStatus_Click"/>
             </MenuItem>
             <MenuItem Header="도구(_T)">
                 <MenuItem Header="설정(_S)" Click="Settings_Click"/>

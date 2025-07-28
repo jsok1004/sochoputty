@@ -53,18 +53,18 @@ namespace SochoPutty.Models
 
         private void AddWelcomeTab()
         {
-            var welcomeTab = new TabItem
+            var startTab = new TabItem
             {
-                Header = "환영",
+                Header = "시작",
                 IsSelected = true
             };
 
-            var welcomeContent = new Grid
+            var startContent = new Grid
             {
                 Background = System.Windows.Media.Brushes.LightBlue
             };
 
-            var welcomeText = new TextBlock
+            var startText = new TextBlock
             {
                 Text = $"{Name} 영역",
                 HorizontalAlignment = HorizontalAlignment.Center,
@@ -73,9 +73,9 @@ namespace SochoPutty.Models
                 FontWeight = FontWeights.Bold
             };
 
-            welcomeContent.Children.Add(welcomeText);
-            welcomeTab.Content = welcomeContent;
-            TabControl.Items.Add(welcomeTab);
+            startContent.Children.Add(startText);
+            startTab.Content = startContent;
+            TabControl.Items.Add(startTab);
         }
 
         public void SetActive(bool active)
@@ -310,6 +310,24 @@ namespace SochoPutty.Models
 
             // 이벤트 발생
             ActivePaneChanged?.Invoke(this, pane);
+        }
+
+        public List<TabItem> GetAllPuttyTabs()
+        {
+            var puttyTabs = new List<TabItem>();
+            
+            foreach (var splitPane in splitPanes)
+            {
+                foreach (var item in splitPane.TabControl.Items)
+                {
+                    if (item is TabItem tab && tab.Tag != null && tab.Header.ToString() != "시작")
+                    {
+                        puttyTabs.Add(tab);
+                    }
+                }
+            }
+            
+            return puttyTabs;
         }
 
         public void ClearSplit()
