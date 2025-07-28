@@ -33,8 +33,9 @@ namespace SochoPutty
             activeSessions = new List<PuttySession>();
             
             // SplitManager 초기화 - 기본 TabControl 복원
-            splitManager = new SplitManager(splitContainer);
+            splitManager = new SplitManager(splitContainer, connectionManager);
             splitManager.TabControlSelectionChanged += TabControl_SelectionChanged;
+            splitManager.QuickConnectRequested += OnQuickConnectRequested;
             RestoreDefaultTabControl();
         }
 
@@ -814,6 +815,12 @@ namespace SochoPutty
                     DebugLogger.LogError($"PuTTY 프로세스 종료 후 자동 탭 닫기 실패: {session.ConnectionInfo.Name}", ex);
                 }
             }));
+        }
+
+        private void OnQuickConnectRequested(object? sender, ConnectionInfo connection)
+        {
+            DebugLogger.LogInfo($"분할 영역에서 빠른 연결 요청: {connection.Name}");
+            CreateNewSession(connection);
         }
 
         protected override void OnClosed(EventArgs e)
