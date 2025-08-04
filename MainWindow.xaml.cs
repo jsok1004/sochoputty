@@ -601,7 +601,7 @@ namespace SochoPutty
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Socho Putty Manager v1.0\n\nPuTTY 연결을 편리하게 관리하는 도구입니다.\n\n made by socho", 
+            MessageBox.Show("Socho Putty Manager v1.1.1\n\nPuTTY 연결을 편리하게 관리하는 도구입니다.\n\n made by socho", 
                           "정보", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 

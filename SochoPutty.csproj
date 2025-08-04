@@ -9,8 +9,8 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <AssemblyTitle>Socho Putty Manager</AssemblyTitle>
     <AssemblyDescription>Advanced PuTTY connection manager with multi-tab support</AssemblyDescription>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.1.1</AssemblyVersion>
+    <FileVersion>1.1.1</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
