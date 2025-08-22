@@ -8,7 +8,7 @@ namespace SochoPutty.Models
 {
     public enum SplitMode
     {
-        None,           // 분할 없음
+        Single,         // 단일 화면 (기본 1개 탭)
         Horizontal,     // 가로 분할 (위/아래)
         Vertical,       // 세로 분할 (좌/우)
         Quad           // 4화면 분할
@@ -303,6 +303,7 @@ namespace SochoPutty.Models
         private List<SplitPane> splitPanes;
         private SplitPane? activeSplitPane;
         private ConnectionManager? connectionManager;
+        private TabControl? mainTabControl;
 
         public SplitMode CurrentMode => currentMode;
         public SplitPane? ActiveSplitPane => activeSplitPane;
@@ -315,10 +316,15 @@ namespace SochoPutty.Models
         public SplitManager(Grid container, ConnectionManager? connectionManager = null)
         {
             splitContainer = container;
-            currentMode = SplitMode.None;
+            currentMode = SplitMode.Single;
             splitPanes = new List<SplitPane>();
             activeSplitPane = null;
             this.connectionManager = connectionManager;
+        }
+
+        public void SetMainTabControl(TabControl tabControl)
+        {
+            mainTabControl = tabControl;
         }
 
         public void ApplySplit(SplitMode mode)
@@ -330,7 +336,8 @@ namespace SochoPutty.Models
 
             switch (mode)
             {
-                case SplitMode.None:
+                case SplitMode.Single:
+                    CreateSinglePane();
                     break;
                 case SplitMode.Horizontal:
                     CreateHorizontalSplit();
@@ -348,6 +355,23 @@ namespace SochoPutty.Models
             {
                 SetActivePane(splitPanes[0]);
             }
+        }
+
+        private void CreateSinglePane()
+        {
+            // Grid를 1개 영역으로 설정
+            splitContainer.RowDefinitions.Clear();
+            splitContainer.ColumnDefinitions.Clear();
+            
+            // 단일 패널 생성
+            var singlePane = new SplitPane("메인", TabControlSelectionChanged, connectionManager, QuickConnectRequested);
+            Grid.SetRow(singlePane.Container, 0);
+            Grid.SetColumn(singlePane.Container, 0);
+            splitContainer.Children.Add(singlePane.Container);
+            splitPanes.Add(singlePane);
+            
+            // 클릭 이벤트 추가
+            singlePane.TabControl.PreviewMouseDown += (s, e) => SetActivePane(singlePane);
         }
 
         private void CreateHorizontalSplit()
@@ -525,15 +549,30 @@ namespace SochoPutty.Models
         {
             var puttyTabs = new List<TabItem>();
             
-            foreach (var splitPane in splitPanes)
+            try
             {
-                foreach (var item in splitPane.TabControl.Items)
+                // 분할 모드에 따라 수집 영역 결정
+                // 모든 분할 영역들에서 수집 (Single 포함)
+                if (splitPanes != null)
                 {
-                    if (item is TabItem tab && tab.Tag != null && tab.Header.ToString() != "시작")
+                    foreach (var splitPane in splitPanes)
                     {
-                        puttyTabs.Add(tab);
+                        if (splitPane?.TabControl?.Items != null)
+                        {
+                            foreach (var item in splitPane.TabControl.Items)
+                            {
+                                if (item is TabItem tab && tab.Tag is PuttySession)
+                                {
+                                    puttyTabs.Add(tab);
+                                }
+                            }
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError("GetAllPuttyTabs 실행 중 오류 발생", ex);
             }
             
             return puttyTabs;
@@ -549,7 +588,7 @@ namespace SochoPutty.Models
             // 패널 목록 정리
             splitPanes.Clear();
             activeSplitPane = null;
-            currentMode = SplitMode.None;
+            // currentMode는 여기서 변경하지 않음 (ApplySplit에서 설정)
         }
 
         public TabControl? GetActiveTabControl()

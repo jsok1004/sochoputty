@@ -32,21 +32,16 @@ namespace SochoPutty
             settingsManager = new SettingsManager();
             activeSessions = new List<PuttySession>();
             
-            // SplitManager 초기화 - 기본 TabControl 복원
+            // SplitManager 초기화 - 단일 모드로 시작
             splitManager = new SplitManager(splitContainer, connectionManager);
             splitManager.TabControlSelectionChanged += TabControl_SelectionChanged;
             splitManager.QuickConnectRequested += OnQuickConnectRequested;
-            RestoreDefaultTabControl();
+            
+            // 초기에 단일 모드로 시작
+            splitManager.ApplySplit(SplitMode.Single);
         }
 
-        private void RestoreDefaultTabControl()
-        {
-            // 기본 TabControl이 splitContainer에 없을 때만 추가
-            if (!splitContainer.Children.Contains(tabControl))
-            {
-                splitContainer.Children.Add(tabControl);
-            }
-        }
+
 
         private void LoadQuickConnections()
         {
@@ -54,20 +49,7 @@ namespace SochoPutty
             cmbQuickConnect.ItemsSource = connections;
             cmbQuickConnect.DisplayMemberPath = "Name";
             
-            // 메인 화면의 빠른 연결 목록 업데이트
-            lstQuickConnections.ItemsSource = connections;
-            
-            // 연결이 없을 때 메시지 표시
-            if (connections.Count == 0)
-            {
-                txtNoConnections.Visibility = Visibility.Visible;
-                lstQuickConnections.Visibility = Visibility.Collapsed;
-            }
-            else
-            {
-                txtNoConnections.Visibility = Visibility.Collapsed;
-                lstQuickConnections.Visibility = Visibility.Visible;
-            }
+            // 빠른 연결 목록은 이제 SplitManager의 "시작" 탭에서 자동 처리됨
         }
 
         private void NewConnection_Click(object sender, RoutedEventArgs e)
@@ -138,11 +120,7 @@ namespace SochoPutty
 
         private void QuickConnectionsList_DoubleClick(object sender, RoutedEventArgs e)
         {
-            if (lstQuickConnections.SelectedItem is ConnectionInfo connection)
-            {
-                DebugLogger.LogInfo($"빠른 연결 목록 더블클릭: {connection.Name}");
-                CreateNewSession(connection);
-            }
+            // 이 메서드는 더 이상 사용되지 않음 (SplitManager의 "시작" 탭에서 처리)
         }
 
         private async void CreateNewSession(ConnectionInfo connection)
@@ -165,18 +143,8 @@ namespace SochoPutty
                 activeSessions.Add(session);
                 DebugLogger.LogDebug($"PuttySession 생성 완료. 활성 세션 수: {activeSessions.Count}");
 
-                // 탭을 추가할 TabControl 결정
-                TabControl targetTabControl;
-                if (splitManager.CurrentMode == SplitMode.None)
-                {
-                    // 분할되지 않은 상태 - 기본 TabControl 사용
-                    targetTabControl = tabControl;
-                }
-                else
-                {
-                    // 분할된 상태 - 활성 분할 영역의 TabControl 사용
-                    targetTabControl = splitManager.GetActiveTabControl() ?? throw new InvalidOperationException("활성 분할 영역을 찾을 수 없습니다.");
-                }
+                // 탭을 추가할 TabControl 결정 - 항상 활성 분할 영역 사용
+                TabControl targetTabControl = splitManager.GetActiveTabControl() ?? throw new InvalidOperationException("활성 분할 영역을 찾을 수 없습니다.");
 
                 // 새 탭 생성
                 var tabItem = new TabItem();
@@ -214,7 +182,7 @@ namespace SochoPutty
                     DebugLogger.LogInfo($"세션 '{connection.Name}' 생성 성공");
                     
                     // PuTTY 시작 후 즉시 현재 탭 크기로 강제 크기 조정 (최초 1회)
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    await Dispatcher.BeginInvoke(new Action(() =>
                     {
                         try
                         {
@@ -290,114 +258,33 @@ namespace SochoPutty
 
         private void UnsplitAll_Click(object sender, RoutedEventArgs e)
         {
-            DebugLogger.LogInfo("분할 해제 실행");
-            ApplySplitMode(SplitMode.None);
+            DebugLogger.LogInfo("분할 해제 실행 (단일 화면으로 변경)");
+            ApplySplitMode(SplitMode.Single);
         }
 
         private void ApplySplitMode(SplitMode mode)
         {
             try
             {
-                if (mode == SplitMode.None)
+                // 모든 활성 세션을 수집
+                var existingPuttyTabs = splitManager.GetAllPuttyTabs();
+                DebugLogger.LogInfo($"분할 모드 변경 시작: {splitManager.CurrentMode} → {mode}, 기존 PuTTY 탭 수: {existingPuttyTabs.Count}");
+                
+                // 새로운 분할 모드 적용
+                splitManager.ApplySplit(mode);
+                
+                // 모든 활성 세션을 첫 번째 영역으로 자동 이동
+                if (existingPuttyTabs.Count > 0 && splitManager.SplitPanes.Count > 0)
                 {
-                    // 분할 해제 - 기존 PuTTY 탭들 처리
-                    var existingPuttyTabs = splitManager.GetAllPuttyTabs();
-                    DebugLogger.LogInfo($"분할 해제 시작 - 기존 PuTTY 탭 수: {existingPuttyTabs.Count}");
+                    var firstPane = splitManager.SplitPanes[0];
+                    MovePuttyTabsToPane(existingPuttyTabs, firstPane);
+                    DebugLogger.LogInfo($"PuTTY 탭 이동 완료: {existingPuttyTabs.Count}개 → {firstPane.Name}");
                     
-                    bool shouldMoveTabs = false;
-                    
-                    if (existingPuttyTabs.Count > 0)
-                    {
-                        var result = MessageBox.Show(
-                            $"분할 영역에 {existingPuttyTabs.Count}개의 활성 연결이 있습니다.\n\n" +
-                            "예: 기본 영역으로 이동\n" +
-                            "아니오: 모든 연결 종료\n" +
-                            "취소: 분할 해제 취소",
-                            "분할 해제", 
-                            MessageBoxButton.YesNoCancel, 
-                            MessageBoxImage.Question);
-                        
-                        if (result == MessageBoxResult.Cancel)
-                        {
-                            DebugLogger.LogInfo("사용자가 분할 해제를 취소함");
-                            return;
-                        }
-                        
-                        if (result == MessageBoxResult.Yes)
-                        {
-                            shouldMoveTabs = true;
-                            DebugLogger.LogInfo("사용자가 기본 영역으로 이동을 선택함");
-                        }
-                        else if (result == MessageBoxResult.No)
-                        {
-                            CloseAllPuttyTabs(existingPuttyTabs);
-                            DebugLogger.LogInfo("사용자가 모든 연결 종료를 선택함");
-                        }
-                    }
-                    
-                    splitManager.ClearSplit();
-                    RestoreDefaultTabControl();
-                    
-                    // 탭 이동 (Yes를 선택한 경우만)
-                    if (shouldMoveTabs && existingPuttyTabs.Count > 0)
-                    {
-                        MovePuttyTabsToMain(existingPuttyTabs);
-                    }
-                    
-                    DebugLogger.LogInfo("분할 해제 완료");
+                    // 첫 번째 영역을 활성화
+                    splitManager.SetActivePane(firstPane);
                 }
-                else
-                {
-                    // 분할 모드 변경 - 기존 PuTTY 탭들 처리
-                    var existingPuttyTabs = splitManager.GetAllPuttyTabs();
-                    DebugLogger.LogInfo($"분할 모드 변경 시작: {splitManager.CurrentMode} → {mode}, 기존 PuTTY 탭 수: {existingPuttyTabs.Count}");
-                    
-                    bool shouldMoveTabs = false;
-                    
-                    if (existingPuttyTabs.Count > 0)
-                    {
-                        var result = MessageBox.Show(
-                            $"현재 분할 영역에 {existingPuttyTabs.Count}개의 활성 연결이 있습니다.\n\n" +
-                            "예: 첫 번째 영역으로 이동\n" +
-                            "아니오: 모든 연결 종료\n" +
-                            "취소: 분할 변경 취소",
-                            "분할 모드 변경", 
-                            MessageBoxButton.YesNoCancel, 
-                            MessageBoxImage.Question);
-                        
-                        if (result == MessageBoxResult.Cancel)
-                        {
-                            DebugLogger.LogInfo("사용자가 분할 모드 변경을 취소함");
-                            return;
-                        }
-                        
-                        if (result == MessageBoxResult.Yes)
-                        {
-                            shouldMoveTabs = true;
-                            DebugLogger.LogInfo("사용자가 탭 이동을 선택함");
-                        }
-                        else if (result == MessageBoxResult.No)
-                        {
-                            CloseAllPuttyTabs(existingPuttyTabs);
-                            DebugLogger.LogInfo("사용자가 모든 연결 종료를 선택함");
-                        }
-                    }
-                    
-                    // 기본 TabControl 제거
-                    splitContainer.Children.Remove(tabControl);
-                    
-                    // 새로운 분할 모드 적용
-                    splitManager.ApplySplit(mode);
-                    
-                    // 탭 이동 (Yes를 선택한 경우만)
-                    if (shouldMoveTabs && existingPuttyTabs.Count > 0 && splitManager.SplitPanes.Count > 0)
-                    {
-                        var firstPane = splitManager.SplitPanes[0];
-                        MovePuttyTabsToPane(existingPuttyTabs, firstPane);
-                    }
-                    
-                    DebugLogger.LogInfo($"분할 모드 적용 완료: {mode}");
-                }
+                
+                DebugLogger.LogInfo($"분할 모드 적용 완료: {mode}");
             }
             catch (Exception ex)
             {
@@ -407,54 +294,7 @@ namespace SochoPutty
             }
         }
 
-        private void MovePuttyTabsToMain(List<TabItem> puttyTabs)
-        {
-            try
-            {
-                DebugLogger.LogInfo($"PuTTY 탭들을 기본 영역으로 이동 시작: {puttyTabs.Count}개");
-                
-                // 탭들의 정보를 저장 (UI 요소가 아닌 데이터만)
-                var tabsInfo = new List<(PuttySession session, object? header, object? content)>();
-                foreach (var tab in puttyTabs)
-                {
-                    if (tab.Tag is PuttySession session)
-                    {
-                        // UI 요소에서 분리하기 전에 정보 저장
-                        var header = tab.Header;
-                        var content = tab.Content;
-                        
-                        // 기존 탭에서 Header와 Content 분리
-                        tab.Header = null;
-                        tab.Content = null;
-                        
-                        tabsInfo.Add((session, header, content));
-                        DebugLogger.LogDebug($"탭 정보 저장: {session.ConnectionInfo.Name}");
-                    }
-                }
-                
-                // UI 스레드에서 새 탭들을 기본 TabControl에 추가
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    foreach (var (session, header, content) in tabsInfo)
-                    {
-                        var newTab = new TabItem
-                        {
-                            Header = header,
-                            Content = content,
-                            Tag = session
-                        };
-                        tabControl.Items.Add(newTab);
-                        DebugLogger.LogDebug($"탭 이동 완료: {session.ConnectionInfo.Name}");
-                    }
-                }), System.Windows.Threading.DispatcherPriority.Background);
-                
-                DebugLogger.LogInfo($"기본 영역으로 탭 이동 완료: {tabsInfo.Count}개");
-            }
-            catch (Exception ex)
-            {
-                DebugLogger.LogError("기본 영역으로 탭 이동 중 오류", ex);
-            }
-        }
+
 
         private void MovePuttyTabsToPane(List<TabItem> puttyTabs, SplitPane targetPane)
         {
@@ -540,38 +380,22 @@ namespace SochoPutty
                 statusMessage += $"• 총 활성 세션 수: {activeSessions.Count}개\n";
                 statusMessage += $"• 현재 분할 모드: {splitManager.CurrentMode}\n\n";
                 
-                if (splitManager.CurrentMode == SplitMode.None)
+                // 각 분할 영역의 탭 확인
+                for (int i = 0; i < splitManager.SplitPanes.Count; i++)
                 {
-                    // 기본 TabControl의 탭 확인
+                    var pane = splitManager.SplitPanes[i];
                     var puttyTabs = 0;
-                    foreach (var item in tabControl.Items)
+                    
+                    foreach (var item in pane.TabControl.Items)
                     {
                         if (item is TabItem tab && tab.Tag is PuttySession)
                         {
                             puttyTabs++;
                         }
                     }
-                    statusMessage += $"• 기본 영역 탭 수: {puttyTabs}개\n";
-                }
-                else
-                {
-                    // 각 분할 영역의 탭 확인
-                    for (int i = 0; i < splitManager.SplitPanes.Count; i++)
-                    {
-                        var pane = splitManager.SplitPanes[i];
-                        var puttyTabs = 0;
-                        
-                        foreach (var item in pane.TabControl.Items)
-                        {
-                            if (item is TabItem tab && tab.Tag is PuttySession)
-                            {
-                                puttyTabs++;
-                            }
-                        }
-                        
-                        var activeIndicator = pane.IsActive ? " (활성)" : "";
-                        statusMessage += $"• {pane.Name} 영역{activeIndicator}: {puttyTabs}개 PuTTY 탭\n";
-                    }
+                    
+                    var activeIndicator = pane.IsActive ? " (활성)" : "";
+                    statusMessage += $"• {pane.Name} 영역{activeIndicator}: {puttyTabs}개 PuTTY 탭\n";
                 }
                 
                 statusMessage += "\n=== 세션 상세 정보 ===\n";
@@ -743,35 +567,19 @@ namespace SochoPutty
                 TabItem? tabToRemove = null;
                 TabControl? parentTabControl = null;
 
-                if (splitManager.CurrentMode == SplitMode.None)
+                // 모든 분할 영역의 TabControl에서 검색
+                foreach (var splitPane in splitManager.SplitPanes)
                 {
-                    // 분할되지 않은 상태 - 기본 TabControl에서 검색
-                    foreach (var item in tabControl.Items)
+                    foreach (var item in splitPane.TabControl.Items)
                     {
                         if (item is TabItem tab && tab.Tag == session)
                         {
                             tabToRemove = tab;
-                            parentTabControl = tabControl;
+                            parentTabControl = splitPane.TabControl;
                             break;
                         }
                     }
-                }
-                else
-                {
-                    // 분할된 상태 - 모든 분할 영역의 TabControl에서 검색
-                    foreach (var splitPane in splitManager.SplitPanes)
-                    {
-                        foreach (var item in splitPane.TabControl.Items)
-                        {
-                            if (item is TabItem tab && tab.Tag == session)
-                            {
-                                tabToRemove = tab;
-                                parentTabControl = splitPane.TabControl;
-                                break;
-                            }
-                        }
-                        if (tabToRemove != null) break;
-                    }
+                    if (tabToRemove != null) break;
                 }
 
                 if (tabToRemove != null && parentTabControl != null)
