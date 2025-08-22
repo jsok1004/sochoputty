@@ -63,6 +63,31 @@
             <Button Name="btnQuickConnect" Click="QuickConnect_Click" ToolTip="빠른 연결">
                 <TextBlock Text="🔗"/>
             </Button>
+            <Separator/>
+            <Button Name="btnUnsplitAll" Click="UnsplitAll_Click" ToolTip="분할 해제">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⬚" FontSize="14" Margin="0,0,5,0"/>
+                    <TextBlock Text="분할 해제"/>
+                </StackPanel>
+            </Button>
+            <Button Name="btnSplitHorizontal" Click="SplitHorizontal_Click" ToolTip="가로 분할">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="↕" FontSize="14" Margin="0,0,5,0"/>
+                    <TextBlock Text="가로 분할"/>
+                </StackPanel>
+            </Button>
+            <Button Name="btnSplitVertical" Click="SplitVertical_Click" ToolTip="새로 분할">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="↔" FontSize="14" Margin="0,0,5,0"/>
+                    <TextBlock Text="새로 분할"/>
+                </StackPanel>
+            </Button>
+            <Button Name="btnSplitQuad" Click="SplitQuad_Click" ToolTip="4화면 분할">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🔠" FontSize="14" Margin="0,0,5,0"/>
+                    <TextBlock Text="4화면 분할"/>
+                </StackPanel>
+            </Button>
         </ToolBar>
         
         <!-- 메인 컨텐츠 영역 -->
