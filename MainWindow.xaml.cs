@@ -626,9 +626,8 @@ namespace SochoPutty
         {
             try
             {
-                var logPath = DebugLogger.GetLogFilePath();
-                var logFolder = Path.GetDirectoryName(logPath);
-                Process.Start("explorer.exe", logFolder!);
+                var logFolder = DebugLogger.GetLogDirectoryPath();
+                Process.Start("explorer.exe", logFolder);
             }
             catch (Exception ex)
             {
