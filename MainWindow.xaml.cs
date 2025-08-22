@@ -425,7 +425,7 @@ namespace SochoPutty
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Socho Putty Manager v1.1.1\n\nPuTTY 연결을 편리하게 관리하는 도구입니다.\n\n made by socho", 
+            MessageBox.Show("Socho Putty Manager v1.2.0\n\nPuTTY 연결을 편리하게 관리하는 도구입니다.\n\nmade by socho", 
                           "정보", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -499,6 +499,9 @@ namespace SochoPutty
                             // 포커스 설정
                             session.FocusPuttyWindow();
                             DebugLogger.LogDebug($"탭 변경 시 포커스 설정: {session.ConnectionInfo.Name}");
+                            
+                            // 드래그앤드롭으로 이동된 탭인 경우 해당 분할 영역을 활성화
+                            UpdateActivePaneForTabControl(sourceTabControl);
                         }
                         catch (Exception ex)
                         {
@@ -628,6 +631,27 @@ namespace SochoPutty
         {
             DebugLogger.LogInfo($"분할 영역에서 빠른 연결 요청: {connection.Name}");
             CreateNewSession(connection);
+        }
+
+        private void UpdateActivePaneForTabControl(TabControl tabControl)
+        {
+            try
+            {
+                // 해당 TabControl을 가진 분할 영역 찾기
+                foreach (var splitPane in splitManager.SplitPanes)
+                {
+                    if (splitPane.TabControl == tabControl)
+                    {
+                        splitManager.SetActivePane(splitPane);
+                        DebugLogger.LogDebug($"드래그앤드롭으로 인한 활성 영역 변경: {splitPane.Name}");
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError("활성 영역 업데이트 중 오류", ex);
+            }
         }
 
         protected override void OnClosed(EventArgs e)

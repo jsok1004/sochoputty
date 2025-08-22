@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace SochoPutty.Models
 {
@@ -20,6 +22,10 @@ namespace SochoPutty.Models
         public Border Container { get; set; }
         public string Name { get; set; }
         public bool IsActive { get; set; }
+        
+        // 드래그앤드롭 관련 속성
+        private TabItem? draggingTab = null;
+        private Point dragStartPoint;
 
         public SplitPane(string name, SelectionChangedEventHandler? selectionChangedHandler = null, 
                         ConnectionManager? connectionManager = null, 
@@ -39,7 +45,8 @@ namespace SochoPutty.Models
             // TabControl 생성
             TabControl = new TabControl
             {
-                TabStripPlacement = Dock.Top
+                TabStripPlacement = Dock.Top,
+                AllowDrop = true  // 드롭 허용
             };
 
             // 이벤트 핸들러 연결
@@ -47,6 +54,14 @@ namespace SochoPutty.Models
             {
                 TabControl.SelectionChanged += selectionChangedHandler;
             }
+            
+            // 드래그앤드롭 이벤트 연결
+            TabControl.PreviewMouseLeftButtonDown += TabControl_PreviewMouseLeftButtonDown;
+            TabControl.PreviewMouseMove += TabControl_PreviewMouseMove;
+            TabControl.Drop += TabControl_Drop;
+            TabControl.DragEnter += TabControl_DragEnter;
+            TabControl.DragOver += TabControl_DragOver;
+            TabControl.DragLeave += TabControl_DragLeave;
 
             // 기본 시작 탭 추가
             AddWelcomeTab(connectionManager, quickConnectHandler);
@@ -294,6 +309,133 @@ namespace SochoPutty.Models
                 ? new Thickness(2) 
                 : new Thickness(1);
         }
+
+        #region 드래그앤드롭 이벤트 핸들러
+
+        private void TabControl_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 드래그 시작점 저장
+            dragStartPoint = e.GetPosition(null);
+            
+            // 클릭된 TabItem 찾기
+            if (e.Source is FrameworkElement element)
+            {
+                var tabItem = FindParent<TabItem>(element);
+                if (tabItem != null && tabItem.Tag is PuttySession)
+                {
+                    draggingTab = tabItem;
+                }
+            }
+        }
+
+        private void TabControl_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed && draggingTab != null)
+            {
+                Point currentPosition = e.GetPosition(null);
+                Vector diff = dragStartPoint - currentPosition;
+
+                // 드래그 거리가 충분히 멀면 드래그 시작
+                if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                    Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    // 드래그 데이터 생성
+                    var dragData = new DataObject("TabItem", draggingTab);
+                    DragDrop.DoDragDrop(TabControl, dragData, DragDropEffects.Move);
+                    
+                    // 드래그 완료 후 초기화
+                    draggingTab = null;
+                }
+            }
+        }
+
+        private void TabControl_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent("TabItem"))
+            {
+                e.Effects = DragDropEffects.Move;
+                
+                // 드래그 오버 시각적 피드백
+                Container.BorderBrush = System.Windows.Media.Brushes.Green;
+                Container.BorderThickness = new Thickness(3);
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void TabControl_DragOver(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent("TabItem"))
+            {
+                e.Effects = DragDropEffects.Move;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+        }
+
+        private void TabControl_DragLeave(object sender, DragEventArgs e)
+        {
+            // 드래그가 영역을 벗어날 때 시각적 피드백 제거
+            SetActive(IsActive); // 원래 상태로 복원
+        }
+
+        private void TabControl_Drop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                // 드래그 오버 시각적 피드백 제거
+                SetActive(IsActive); // 원래 상태로 복원
+                
+                if (e.Data.GetDataPresent("TabItem") && e.Data.GetData("TabItem") is TabItem droppedTab)
+                {
+                    // 같은 TabControl에 드롭된 경우 무시
+                    if (droppedTab.Parent == TabControl)
+                    {
+                        return;
+                    }
+                    
+                    // 시작 탭인 경우 이동 불가
+                    if (droppedTab.Tag is not PuttySession)
+                    {
+                        return;
+                    }
+                    
+                    // 기존 TabControl에서 제거
+                    if (droppedTab.Parent is TabControl sourceTabControl)
+                    {
+                        sourceTabControl.Items.Remove(droppedTab);
+                    }
+                    
+                    // 새 TabControl에 추가
+                    TabControl.Items.Add(droppedTab);
+                    TabControl.SelectedItem = droppedTab;
+                    
+                    DebugLogger.LogInfo($"탭 드래그앤드롭 완료: {((PuttySession)droppedTab.Tag).ConnectionInfo.Name} → {Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError("탭 드롭 처리 중 오류 발생", ex);
+            }
+        }
+
+        private static T? FindParent<T>(DependencyObject child) where T : DependencyObject
+        {
+            DependencyObject? parentObject = System.Windows.Media.VisualTreeHelper.GetParent(child);
+            
+            if (parentObject == null) return null;
+            
+            if (parentObject is T parent)
+                return parent;
+            
+            return FindParent<T>(parentObject);
+        }
+
+        #endregion
     }
 
     public class SplitManager
