@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -587,13 +588,24 @@ namespace SochoPutty
 
                 if (tabToRemove != null && parentTabControl != null)
                 {
-                    // 탭 제거
+                    // 즉시 탭 제거 (UI 반응성 향상)
                     parentTabControl.Items.Remove(tabToRemove);
+                    activeSessions.Remove(session);
                     DebugLogger.LogDebug($"탭 제거 완료: {session.ConnectionInfo.Name}");
                     
-                    // 세션 정리
-                    session.Dispose();
-                    activeSessions.Remove(session);
+                    // 백그라운드에서 세션 정리 (UI 블로킹 방지)
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            session.Dispose();
+                            DebugLogger.LogInfo($"세션 정리 완료: {session.ConnectionInfo.Name}");
+                        }
+                        catch (Exception disposeEx)
+                        {
+                            DebugLogger.LogError($"세션 정리 중 오류: {session.ConnectionInfo.Name}", disposeEx);
+                        }
+                    });
                     
                     DebugLogger.LogInfo($"탭 닫기 완료: {session.ConnectionInfo.Name}, 남은 활성 세션: {activeSessions.Count}");
                 }
@@ -656,11 +668,38 @@ namespace SochoPutty
 
         protected override void OnClosed(EventArgs e)
         {
-            // 모든 활성 세션 종료
-            foreach (var session in activeSessions)
+            try
             {
-                session.Dispose();
+                DebugLogger.LogInfo($"메인 윈도우 종료 시작 - 활성 세션: {activeSessions.Count}개");
+                
+                // 모든 활성 세션을 복사하여 백그라운드에서 정리
+                var sessionsToClose = activeSessions.ToList();
+                activeSessions.Clear();
+                
+                // 백그라운드에서 모든 세션 정리 (UI 종료 블로킹 방지)
+                Task.Run(() =>
+                {
+                    foreach (var session in sessionsToClose)
+                    {
+                        try
+                        {
+                            session.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugLogger.LogError($"프로그램 종료 시 세션 정리 중 오류: {session.ConnectionInfo.Name}", ex);
+                        }
+                    }
+                    DebugLogger.LogInfo($"프로그램 종료 시 모든 세션 정리 완료: {sessionsToClose.Count}개");
+                });
+                
+                DebugLogger.LogInfo("메인 윈도우 종료 완료");
             }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError("메인 윈도우 종료 중 오류", ex);
+            }
+            
             base.OnClosed(e);
         }
     }

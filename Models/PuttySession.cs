@@ -554,45 +554,80 @@ namespace SochoPutty.Models
                 if (_puttyProcess != null && !_puttyProcess.HasExited)
                 {
                     DebugLogger.LogDebug($"PuTTY 프로세스 종료 시도: {_connectionInfo.Name} (PID: {_puttyProcess.Id})");
-                    _puttyProcess.CloseMainWindow();
                     
-                    // 정상 종료를 기다림
-                    if (!_puttyProcess.WaitForExit(5000))
+                    // 비동기로 프로세스 종료 처리
+                    _ = Task.Run(async () =>
                     {
-                        DebugLogger.LogWarning($"PuTTY 프로세스 강제 종료: {_connectionInfo.Name}");
-                        _puttyProcess.Kill();
-                    }
-                    else
-                    {
-                        DebugLogger.LogInfo($"PuTTY 프로세스 정상 종료: {_connectionInfo.Name}");
-                    }
+                        try
+                        {
+                            _puttyProcess.CloseMainWindow();
+                            
+                            // 백그라운드에서 정상 종료를 기다림 (UI 블로킹 방지)
+                            var waitTask = Task.Run(() => _puttyProcess.WaitForExit(3000));
+                            var completed = await waitTask.ConfigureAwait(false);
+                            
+                            if (!completed)
+                            {
+                                DebugLogger.LogWarning($"PuTTY 프로세스 강제 종료: {_connectionInfo.Name}");
+                                try
+                                {
+                                    _puttyProcess.Kill();
+                                    await Task.Run(() => _puttyProcess.WaitForExit(1000)).ConfigureAwait(false);
+                                }
+                                catch (Exception killEx)
+                                {
+                                    DebugLogger.LogError($"PuTTY 프로세스 강제 종료 실패: {_connectionInfo.Name}", killEx);
+                                }
+                            }
+                            else
+                            {
+                                DebugLogger.LogInfo($"PuTTY 프로세스 정상 종료: {_connectionInfo.Name}");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugLogger.LogError($"PuTTY 프로세스 비동기 종료 중 오류: {_connectionInfo.Name}", ex);
+                        }
+                        finally
+                        {
+                            try
+                            {
+                                _puttyProcess?.Dispose();
+                            }
+                            catch (Exception ex)
+                            {
+                                DebugLogger.LogError($"PuTTY 프로세스 리소스 해제 중 예외: {_connectionInfo.Name}", ex);
+                            }
+                        }
+                    });
+                    
+                    // 즉시 리소스 정리 (UI 블로킹 방지)
+                    _puttyProcess = null;
+                    _puttyWindowHandle = IntPtr.Zero;
                 }
                 else if (_puttyProcess != null)
                 {
                     DebugLogger.LogDebug($"PuTTY 프로세스 이미 종료됨: {_connectionInfo.Name}");
-                }
-            }
-            catch (Exception ex)
-            {
-                DebugLogger.LogError($"PuTTY 연결 해제 중 예외 발생: {_connectionInfo.Name}", ex);
-            }
-            finally
-            {
-                try
-                {
-                    _puttyProcess?.Dispose();
-                }
-                catch (Exception ex)
-                {
-                    DebugLogger.LogError($"PuTTY 프로세스 리소스 해제 중 예외: {_connectionInfo.Name}", ex);
+                    try
+                    {
+                        _puttyProcess?.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugLogger.LogError($"PuTTY 프로세스 리소스 해제 중 예외: {_connectionInfo.Name}", ex);
+                    }
+                    _puttyProcess = null;
+                    _puttyWindowHandle = IntPtr.Zero;
                 }
                 
-                _puttyProcess = null;
-                _puttyWindowHandle = IntPtr.Zero;
                 _bordersCached = false;
                 _cachedBorders = (0, 0, 0);
                 
                 DebugLogger.LogDebug($"PuTTY 리소스 정리 완료: {_connectionInfo.Name}");
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError($"PuTTY 연결 해제 중 예외 발생: {_connectionInfo.Name}", ex);
             }
         }
 
