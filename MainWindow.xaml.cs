@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
+using System.Windows.Media;
 using System.Runtime.InteropServices;
 using SochoPutty.Models;
 using SochoPutty.Windows;
@@ -156,7 +157,9 @@ namespace SochoPutty
                 var windowsFormsHost = new System.Windows.Forms.Integration.WindowsFormsHost();
                 var panel = new System.Windows.Forms.Panel();
                 panel.Dock = System.Windows.Forms.DockStyle.Fill; // 패널이 전체 영역을 채우도록
+                panel.BackColor = System.Drawing.Color.Black;
                 windowsFormsHost.Child = panel;
+                windowsFormsHost.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0));
 
                 // 크기 변경 이벤트 처리 (유일하고 정확한 크기 조정 지점)
                 windowsFormsHost.SizeChanged += (sender, e) =>
@@ -426,7 +429,7 @@ namespace SochoPutty
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Socho Putty Manager v1.2.0\n\nPuTTY 연결을 편리하게 관리하는 도구입니다.\n\nmade by socho", 
+            MessageBox.Show("Socho Putty Manager v1.2.2\n\nPuTTY 연결을 편리하게 관리하는 도구입니다.\n\nmade by socho", 
                           "정보", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 

@@ -81,7 +81,7 @@ namespace SochoPutty.Models
             // 시작 탭 컨텐츠 생성
             var startContent = new Grid
             {
-                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 249, 250))
+                Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)) // #000000
             };
 
             var stackPanel = new StackPanel
@@ -98,7 +98,7 @@ namespace SochoPutty.Models
                 FontWeight = FontWeights.Bold,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 Margin = new Thickness(0, 0, 0, 20),
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(52, 58, 64))
+                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 234, 255)) // #33EAFF
             };
             stackPanel.Children.Add(titleText);
 
@@ -107,15 +107,18 @@ namespace SochoPutty.Models
             {
                 var quickConnectBorder = new Border
                 {
-                    Background = System.Windows.Media.Brushes.White,
+                    Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)), // #000000
                     CornerRadius = new CornerRadius(8),
                     Padding = new Thickness(20),
                     MaxWidth = 900,
-                    BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(222, 226, 230)),
-                    BorderThickness = new Thickness(1)
+                    BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 234, 255)), // #33EAFF
+                    BorderThickness = new Thickness(2)
                 };
 
-                var quickConnectPanel = new StackPanel();
+                var quickConnectPanel = new StackPanel
+                {
+                    Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)) // #000000
+                };
 
                 // 빠른 연결 제목
                 var quickConnectTitle = new TextBlock
@@ -124,7 +127,7 @@ namespace SochoPutty.Models
                     FontSize = 18,
                     FontWeight = FontWeights.SemiBold,
                     Margin = new Thickness(0, 0, 0, 15),
-                    Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(73, 80, 87))
+                    Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)) // #FFFFFF
                 };
                 quickConnectPanel.Children.Add(quickConnectTitle);
 
@@ -138,7 +141,7 @@ namespace SochoPutty.Models
                         HorizontalAlignment = HorizontalAlignment.Center,
                         Margin = new Thickness(20),
                         FontStyle = FontStyles.Italic,
-                        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(108, 117, 125))
+                        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255)) // #FFFFFF
                     };
                     quickConnectPanel.Children.Add(noConnectionsText);
                 }
@@ -148,7 +151,8 @@ namespace SochoPutty.Models
                     var connectionsListBox = new ListBox
                     {
                         BorderThickness = new Thickness(0),
-                        MaxHeight = 400
+                        MaxHeight = 400,
+                        Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0)) // #000000
                     };
                     ScrollViewer.SetHorizontalScrollBarVisibility(connectionsListBox, ScrollBarVisibility.Disabled);
 
@@ -196,12 +200,12 @@ namespace SochoPutty.Models
             // Border 팩토리 생성
             var borderFactory = new FrameworkElementFactory(typeof(Border));
             borderFactory.SetValue(Border.BackgroundProperty, 
-                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 249, 250)));
+                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(26, 26, 26))); // #1a1a1a
             borderFactory.SetValue(Border.MarginProperty, new Thickness(5));
             borderFactory.SetValue(Border.PaddingProperty, new Thickness(10, 8, 10, 8));
             borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
             borderFactory.SetValue(Border.BorderBrushProperty, 
-                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(233, 236, 239)));
+                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 234, 255))); // #33EAFF
             borderFactory.SetValue(Border.BorderThicknessProperty, new Thickness(1));
             borderFactory.SetValue(Border.WidthProperty, 180.0);
             borderFactory.SetValue(Border.HeightProperty, 90.0);
@@ -228,14 +232,14 @@ namespace SochoPutty.Models
             nameTextFactory.SetValue(TextBlock.FontWeightProperty, FontWeights.SemiBold);
             nameTextFactory.SetValue(TextBlock.FontSizeProperty, 13.0);
             nameTextFactory.SetValue(TextBlock.ForegroundProperty, 
-                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(33, 37, 41)));
+                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255))); // #FFFFFF
             nameTextFactory.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
             topStackFactory.AppendChild(nameTextFactory);
 
             // 호스트:포트
             var hostPortFactory = new FrameworkElementFactory(typeof(TextBlock));
             hostPortFactory.SetValue(TextBlock.ForegroundProperty, 
-                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(108, 117, 125)));
+                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 234, 255))); // #33EAFF
             hostPortFactory.SetValue(TextBlock.FontSizeProperty, 11.0);
             hostPortFactory.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
             
@@ -251,7 +255,7 @@ namespace SochoPutty.Models
             typeTextFactory.SetBinding(TextBlock.TextProperty, new Binding("ConnectionType"));
             typeTextFactory.SetValue(TextBlock.FontSizeProperty, 10.0);
             typeTextFactory.SetValue(TextBlock.ForegroundProperty, 
-                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(134, 142, 150)));
+                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 255, 255))); // #FFFFFF
             typeTextFactory.SetValue(TextBlock.FontStyleProperty, FontStyles.Italic);
             topStackFactory.AppendChild(typeTextFactory);
 
@@ -260,7 +264,7 @@ namespace SochoPutty.Models
             descTextFactory.SetBinding(TextBlock.TextProperty, new Binding("Description"));
             descTextFactory.SetValue(TextBlock.FontSizeProperty, 10.0);
             descTextFactory.SetValue(TextBlock.ForegroundProperty, 
-                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(173, 181, 189)));
+                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 234, 255))); // #33EAFF
             descTextFactory.SetValue(TextBlock.TextTrimmingProperty, TextTrimming.CharacterEllipsis);
             descTextFactory.SetValue(TextBlock.MaxHeightProperty, 12.0);
             topStackFactory.AppendChild(descTextFactory);
@@ -272,9 +276,12 @@ namespace SochoPutty.Models
             buttonFactory.SetValue(Grid.RowProperty, 1);
             buttonFactory.SetValue(Button.ContentProperty, "연결");
             buttonFactory.SetValue(Button.BackgroundProperty, 
-                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 123, 255)));
-            buttonFactory.SetValue(Button.ForegroundProperty, System.Windows.Media.Brushes.White);
-            buttonFactory.SetValue(Button.BorderThicknessProperty, new Thickness(0));
+                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 234, 255))); // #33EAFF
+            buttonFactory.SetValue(Button.ForegroundProperty, 
+                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 0, 0))); // #000000
+            buttonFactory.SetValue(Button.BorderThicknessProperty, new Thickness(1));
+            buttonFactory.SetValue(Button.BorderBrushProperty, 
+                new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(51, 234, 255))); // #33EAFF
             buttonFactory.SetValue(Button.PaddingProperty, new Thickness(8, 3, 8, 3));
             buttonFactory.SetValue(Button.MarginProperty, new Thickness(0, 5, 0, 0));
             buttonFactory.SetValue(Button.HorizontalAlignmentProperty, HorizontalAlignment.Stretch);

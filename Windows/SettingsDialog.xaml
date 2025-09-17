@@ -3,7 +3,114 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="설정" Height="400" Width="500"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        Background="#000000">
+    <Window.Resources>
+        <!-- 다크 테마 스타일 -->
+        <Style TargetType="{x:Type Grid}">
+            <Setter Property="Background" Value="#000000"/>
+        </Style>
+        
+        <Style TargetType="{x:Type TabControl}">
+            <Setter Property="Background" Value="#000000"/>
+            <Setter Property="BorderBrush" Value="#33eaff"/>
+        </Style>
+        
+        <Style TargetType="{x:Type TabItem}">
+            <Setter Property="Background" Value="#999999"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#33eaff"/>
+            <Setter Property="BorderThickness" Value="1,1,1,0"/>
+            <Setter Property="Margin" Value="0,0,2,0"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border Name="Border" 
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                Margin="{TemplateBinding Margin}"
+                                CornerRadius="4,4,0,0">
+                            <ContentPresenter x:Name="ContentSite"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center"
+                                            ContentSource="Header"
+                                            Margin="0"
+                                            TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#33eaff"/>
+                                <Setter Property="Foreground" Value="#000000"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#2bc7d9"/>
+                                <Setter Property="Foreground" Value="#000000"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style TargetType="{x:Type GroupBox}">
+            <Setter Property="Foreground" Value="#33eaff"/>
+            <Setter Property="BorderBrush" Value="#33eaff"/>
+            <Setter Property="Background" Value="#000000"/>
+        </Style>
+        
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        
+        <Style TargetType="{x:Type CheckBox}">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        
+        
+        <Style TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="#1a1a1a"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#33eaff"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CaretBrush" Value="#33eaff"/>
+        </Style>
+        
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="#1a1a1a"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#33eaff"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#33eaff"/>
+                    <Setter Property="Foreground" Value="#000000"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#2bc7d9"/>
+                    <Setter Property="Foreground" Value="#000000"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        
+        <Style TargetType="{x:Type ScrollViewer}">
+            <Setter Property="Background" Value="#000000"/>
+        </Style>
+        
+        <Style TargetType="{x:Type StackPanel}">
+            <Setter Property="Background" Value="#000000"/>
+        </Style>
+    </Window.Resources>
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -55,7 +162,7 @@
                             <StackPanel Margin="10">
                                 <CheckBox Name="chkSavePasswordsEncrypted" Content="비밀번호를 암호화하여 저장" Margin="0,0,0,10"/>
                                 <TextBlock Text="※ 비밀번호가 평문으로 저장되지 않도록 합니다." 
-                                          FontSize="11" Foreground="Gray" TextWrapping="Wrap"/>
+                                          FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
                             </StackPanel>
                         </GroupBox>
                         
