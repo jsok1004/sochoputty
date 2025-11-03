@@ -140,7 +140,7 @@
                 <MenuItem Header="정보(_A)" Click="About_Click"/>
             </MenuItem>
             <Separator/>
-            <TextBlock Text="Socho Putty Manager V1.2.2" FontSize="12" FontWeight="Bold" Foreground="#33eaff" HorizontalAlignment="Right" Margin="0,0,10,0"/>
+            <MenuItem Header="Socho Putty Manager V1.2.2" Click="About_Click" FontSize="12" FontWeight="Bold" Foreground="#33eaff" HorizontalAlignment="Right" Margin="0,0,10,0"/>
         </Menu>
         
         <!-- 툴바 -->
