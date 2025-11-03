@@ -39,28 +39,15 @@ namespace SochoPutty.Windows
 
         private void LoadSettings()
         {
-            // 일반 설정
-            chkAlwaysOnTop.IsChecked = _currentSettings.AlwaysOnTop;
-            chkMinimizeToTray.IsChecked = _currentSettings.MinimizeToTray;
-            chkShowToolbar.IsChecked = _currentSettings.ShowToolbar;
-            chkShowStatusBar.IsChecked = _currentSettings.ShowStatusBar;
-            chkConfirmBeforeClosing.IsChecked = _currentSettings.ConfirmBeforeClosing;
-            
-            // 탭 위치 설정
-            foreach (ComboBoxItem item in cmbTabPosition.Items)
+            // 애플리케이션 테마 설정
+            foreach (ComboBoxItem item in cmbApplicationTheme.Items)
             {
-                if (item.Tag.ToString() == _currentSettings.TabPosition.ToString())
+                if (item.Tag.ToString() == _currentSettings.Theme)
                 {
-                    cmbTabPosition.SelectedItem = item;
+                    cmbApplicationTheme.SelectedItem = item;
                     break;
                 }
             }
-            
-            // 보안 설정
-            chkSavePasswordsEncrypted.IsChecked = _currentSettings.SavePasswordsEncrypted;
-            chkAutoReconnect.IsChecked = _currentSettings.AutoReconnect;
-            txtAutoReconnectInterval.Text = _currentSettings.AutoReconnectInterval.ToString();
-            gridAutoReconnectSettings.IsEnabled = _currentSettings.AutoReconnect;
             
             // 기본값 설정
             if (Enum.TryParse<ConnectionType>(_currentSettings.DefaultConnectionType, out var connectionType))
@@ -68,15 +55,6 @@ namespace SochoPutty.Windows
                 cmbDefaultConnectionType.SelectedValue = connectionType;
             }
             
-            // 테마 설정
-            foreach (ComboBoxItem item in cmbTheme.Items)
-            {
-                if (item.Tag.ToString() == _currentSettings.Theme)
-                {
-                    cmbTheme.SelectedItem = item;
-                    break;
-                }
-            }
             
             // 글꼴 설정
             var fontFamily = Fonts.SystemFontFamilies.FirstOrDefault(f => f.Source == _currentSettings.FontFamily);
@@ -89,27 +67,12 @@ namespace SochoPutty.Windows
 
         private AppSettings CreateSettingsFromInput()
         {
-            var settings = new AppSettings
-            {
-                AlwaysOnTop = chkAlwaysOnTop.IsChecked == true,
-                MinimizeToTray = chkMinimizeToTray.IsChecked == true,
-                ShowToolbar = chkShowToolbar.IsChecked == true,
-                ShowStatusBar = chkShowStatusBar.IsChecked == true,
-                ConfirmBeforeClosing = chkConfirmBeforeClosing.IsChecked == true,
-                SavePasswordsEncrypted = chkSavePasswordsEncrypted.IsChecked == true,
-                AutoReconnect = chkAutoReconnect.IsChecked == true
-            };
+            var settings = new AppSettings();
             
-            // 탭 위치
-            if (cmbTabPosition.SelectedItem is ComboBoxItem tabPosItem)
+            // 애플리케이션 테마
+            if (cmbApplicationTheme.SelectedItem is ComboBoxItem themeItem)
             {
-                settings.TabPosition = int.Parse(tabPosItem.Tag?.ToString() ?? "0");
-            }
-            
-            // 자동 재연결 간격
-            if (int.TryParse(txtAutoReconnectInterval.Text, out int interval))
-            {
-                settings.AutoReconnectInterval = Math.Max(1, interval);
+                settings.Theme = themeItem.Tag?.ToString() ?? "Dark";
             }
             
             // 기본 연결 타입
@@ -118,11 +81,6 @@ namespace SochoPutty.Windows
                 settings.DefaultConnectionType = defaultConnectionType.ToString();
             }
             
-            // 테마
-            if (cmbTheme.SelectedItem is ComboBoxItem themeItem)
-            {
-                settings.Theme = themeItem.Tag?.ToString() ?? "Light";
-            }
             
             // 글꼴
             if (cmbFontFamily.SelectedItem is FontFamily fontFamily)
@@ -140,21 +98,6 @@ namespace SochoPutty.Windows
 
 
 
-        private void AutoReconnect_Checked(object sender, RoutedEventArgs e)
-        {
-            if (gridAutoReconnectSettings != null)
-            {
-                gridAutoReconnectSettings.IsEnabled = true;
-            }
-        }
-
-        private void AutoReconnect_Unchecked(object sender, RoutedEventArgs e)
-        {
-            if (gridAutoReconnectSettings != null)
-            {
-                gridAutoReconnectSettings.IsEnabled = false;
-            }
-        }
 
         private void OK_Click(object sender, RoutedEventArgs e)
         {

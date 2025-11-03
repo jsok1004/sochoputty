@@ -38,6 +38,8 @@
                 <Separator/>
                 <MenuItem Header="정보(_A)" Click="About_Click"/>
             </MenuItem>
+            <Separator/>
+            <MenuItem Header="Socho Putty Manager V1.3" Click="About_Click" FontSize="12" FontWeight="Bold" Foreground="#C1C1C1" HorizontalAlignment="Right" Margin="0,0,10,0"/>
         </Menu>
         
         <!-- 툴바 -->

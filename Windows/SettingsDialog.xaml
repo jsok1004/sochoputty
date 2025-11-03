@@ -15,75 +15,27 @@
             <TabItem Header="일반">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="10">
-
-                        <GroupBox Header="인터페이스" Margin="0,0,0,15">
-                            <StackPanel Margin="10">
-                                <CheckBox Name="chkAlwaysOnTop" Content="항상 위에 표시" Margin="0,0,0,10"/>
-                                <CheckBox Name="chkMinimizeToTray" Content="시스템 트레이로 최소화" Margin="0,0,0,10"/>
-                                <CheckBox Name="chkShowToolbar" Content="도구 모음 표시" Margin="0,0,0,10"/>
-                                <CheckBox Name="chkShowStatusBar" Content="상태 표시줄 표시" Margin="0,0,0,10"/>
-                                <CheckBox Name="chkConfirmBeforeClosing" Content="종료 전 확인" Margin="0,0,0,10"/>
+                        <GroupBox Header="테마" Margin="0,0,0,15">
+                            <Grid Margin="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
                                 
-                                <Grid Margin="0,10,0,0">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="120"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    
-                                    <Label Grid.Row="0" Grid.Column="0" Content="탭 위치:"/>
-                                    <ComboBox Grid.Row="0" Grid.Column="1" Name="cmbTabPosition" Margin="5">
-                                        <ComboBoxItem Content="상단" Tag="0"/>
-                                        <ComboBoxItem Content="하단" Tag="1"/>
-                                        <ComboBoxItem Content="왼쪽" Tag="2"/>
-                                        <ComboBoxItem Content="오른쪽" Tag="3"/>
-                                    </ComboBox>
-                                </Grid>
-                            </StackPanel>
+                                <Label Grid.Row="0" Grid.Column="0" Content="애플리케이션 테마:"/>
+                                <ComboBox Grid.Row="0" Grid.Column="1" Name="cmbApplicationTheme" Margin="5">
+                                    <ComboBoxItem Content="다크 모드" Tag="Dark"/>
+                                    <ComboBoxItem Content="일반 모드" Tag="Light"/>
+                                </ComboBox>
+                            </Grid>
                         </GroupBox>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
             
-            <!-- 보안 설정 -->
-            <TabItem Header="보안">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="10">
-                        <GroupBox Header="비밀번호" Margin="0,0,0,15">
-                            <StackPanel Margin="10">
-                                <CheckBox Name="chkSavePasswordsEncrypted" Content="비밀번호를 암호화하여 저장" Margin="0,0,0,10"/>
-                                <TextBlock Text="※ 비밀번호가 평문으로 저장되지 않도록 합니다." 
-                                          FontSize="11" Foreground="Gray" TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </GroupBox>
-                        
-                        <GroupBox Header="연결">
-                            <StackPanel Margin="10">
-                                <CheckBox Name="chkAutoReconnect" Content="자동 재연결" Margin="0,0,0,10"
-                                          Checked="AutoReconnect_Checked" Unchecked="AutoReconnect_Unchecked"/>
-                                
-                                <Grid Name="gridAutoReconnectSettings" Margin="20,0,0,0" IsEnabled="False">
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="120"/>
-                                        <ColumnDefinition Width="100"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    
-                                    <Label Grid.Row="0" Grid.Column="0" Content="재연결 간격:"/>
-                                    <TextBox Grid.Row="0" Grid.Column="1" Name="txtAutoReconnectInterval" 
-                                             Text="30" Margin="5"/>
-                                    <Label Grid.Row="0" Grid.Column="2" Content="초" VerticalAlignment="Center"/>
-                                </Grid>
-                            </StackPanel>
-                        </GroupBox>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
             
             <!-- 기본값 설정 -->
             <TabItem Header="기본값">
@@ -104,10 +56,9 @@
                             </Grid>
                         </GroupBox>
                         
-                        <GroupBox Header="테마 및 글꼴">
+                        <GroupBox Header="글꼴">
                             <Grid Margin="10">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
@@ -116,18 +67,11 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <Label Grid.Row="0" Grid.Column="0" Content="테마:"/>
-                                <ComboBox Grid.Row="0" Grid.Column="1" Name="cmbTheme" Margin="5">
-                                    <ComboBoxItem Content="기본" Tag="Default"/>
-                                    <ComboBoxItem Content="다크" Tag="Dark"/>
-                                    <ComboBoxItem Content="라이트" Tag="Light"/>
-                                </ComboBox>
+                                <Label Grid.Row="0" Grid.Column="0" Content="글꼴:"/>
+                                <ComboBox Grid.Row="0" Grid.Column="1" Name="cmbFontFamily" Margin="5"/>
                                 
-                                <Label Grid.Row="1" Grid.Column="0" Content="글꼴:"/>
-                                <ComboBox Grid.Row="1" Grid.Column="1" Name="cmbFontFamily" Margin="5"/>
-                                
-                                <Label Grid.Row="2" Grid.Column="0" Content="글꼴 크기:"/>
-                                <ComboBox Grid.Row="2" Grid.Column="1" Name="cmbFontSize" Margin="5"/>
+                                <Label Grid.Row="1" Grid.Column="0" Content="글꼴 크기:"/>
+                                <ComboBox Grid.Row="1" Grid.Column="1" Name="cmbFontSize" Margin="5"/>
                             </Grid>
                         </GroupBox>
                     </StackPanel>
