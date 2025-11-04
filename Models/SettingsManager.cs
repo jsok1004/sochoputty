@@ -84,7 +84,7 @@ namespace SochoPutty.Models
         public bool AutoReconnect { get; set; } = false;
         public int AutoReconnectInterval { get; set; } = 30;
         public string DefaultConnectionType { get; set; } = "SSH";
-        public string Theme { get; set; } = "Default";
+        public string Theme { get; set; } = "Dark";
         public bool ShowToolbar { get; set; } = true;
         public bool ShowStatusBar { get; set; } = true;
         public int TabPosition { get; set; } = 0; // 0=Top, 1=Bottom, 2=Left, 3=Right

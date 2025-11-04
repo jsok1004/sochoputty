@@ -108,7 +108,7 @@ namespace SochoPutty.Models
                 var quickConnectBorder = new Border
                 {
                     Background = System.Windows.Media.Brushes.White,
-                    CornerRadius = new CornerRadius(8),
+                    CornerRadius = new CornerRadius(0),
                     Padding = new Thickness(20),
                     MaxWidth = 900,
                     BorderBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(222, 226, 230)),
@@ -199,7 +199,7 @@ namespace SochoPutty.Models
                 new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 249, 250)));
             borderFactory.SetValue(Border.MarginProperty, new Thickness(5));
             borderFactory.SetValue(Border.PaddingProperty, new Thickness(10, 8, 10, 8));
-            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(5));
+            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(0));
             borderFactory.SetValue(Border.BorderBrushProperty, 
                 new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(233, 236, 239)));
             borderFactory.SetValue(Border.BorderThicknessProperty, new Thickness(1));
@@ -303,7 +303,7 @@ namespace SochoPutty.Models
         {
             IsActive = active;
             Container.BorderBrush = active 
-                ? System.Windows.Media.Brushes.Blue 
+                ? System.Windows.Media.Brushes.DarkGray 
                 : System.Windows.Media.Brushes.LightGray;
             Container.BorderThickness = active 
                 ? new Thickness(2) 

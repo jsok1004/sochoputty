@@ -20,11 +20,50 @@ namespace SochoPutty
         private List<PuttySession> activeSessions = null!;
         private SplitManager splitManager = null!;
 
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref Margins pMarInset);
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Margins
+        {
+            public int cxLeftWidth;
+            public int cxRightWidth;
+            public int cyTopHeight;
+            public int cyBottomHeight;
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            var hwnd = new WindowInteropHelper(this).Handle;
+
+            // Enable shadow
+            int val = 2;
+            DwmSetWindowAttribute(hwnd, 2, ref val, sizeof(int)); // DWMWA_NCRENDERING_POLICY = 2
+
+            Margins margins = new Margins
+            {
+                cxLeftWidth = 1,
+                cxRightWidth = 1,
+                cyTopHeight = 1,
+                cyBottomHeight = 1
+            };
+
+            DwmExtendFrameIntoClientArea(hwnd, ref margins);
+        }
+        
         public MainWindow()
         {
             InitializeComponent();
             InitializeManagers();
             LoadQuickConnections();
+            
+            // 설정에서 테마 로드 및 적용
+            LoadAndApplyTheme();
         }
 
         private void InitializeManagers()
@@ -42,7 +81,11 @@ namespace SochoPutty
             splitManager.ApplySplit(SplitMode.Single);
         }
 
-
+        private void LoadAndApplyTheme()
+        {
+            var settings = settingsManager.GetSettings();
+            ThemeManager.ApplyTheme(settings.Theme);
+        }
 
         private void LoadQuickConnections()
         {
@@ -370,7 +413,11 @@ namespace SochoPutty
         private void Settings_Click(object sender, RoutedEventArgs e)
         {
             var settingsDialog = new SettingsDialog(settingsManager);
-            settingsDialog.ShowDialog();
+            if (settingsDialog.ShowDialog() == true)
+            {
+                // 설정이 변경되었으면 테마를 다시 적용
+                LoadAndApplyTheme();
+            }
         }
 
         private void ShowActiveSessionStatus_Click(object sender, RoutedEventArgs e)
@@ -462,6 +509,22 @@ namespace SochoPutty
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        // 커스텀 타이틀바 윈도우 컨트롤 버튼 이벤트 핸들러
+        private void MinimizeWindow_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void MaximizeWindow_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        }
+
+        private void CloseWindow_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }

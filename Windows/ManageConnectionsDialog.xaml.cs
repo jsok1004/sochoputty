@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 using Microsoft.Win32;
 using Newtonsoft.Json;
 using SochoPutty.Models;
@@ -13,6 +15,21 @@ namespace SochoPutty.Windows
 {
     public partial class ManageConnectionsDialog : Window
     {
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref Margins pMarInset);
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Margins
+        {
+            public int cxLeftWidth;
+            public int cxRightWidth;
+            public int cyTopHeight;
+            public int cyBottomHeight;
+        }
+
         private readonly ConnectionManager _connectionManager;
         private List<ConnectionInfo> _connections = null!;
         public ConnectionInfo? SelectedConnectionToConnect { get; private set; }
@@ -345,6 +362,43 @@ namespace SochoPutty.Windows
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
+        }
+
+        // 커스텀 타이틀바 윈도우 컨트롤 버튼 이벤트 핸들러
+        private void MinimizeWindow_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void MaximizeWindow_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        }
+
+        private void CloseWindow_Click(object sender, RoutedEventArgs e)
+        {
+            Close_Click(sender, e);
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            var hwnd = new WindowInteropHelper(this).Handle;
+
+            // Enable shadow
+            int val = 2;
+            DwmSetWindowAttribute(hwnd, 2, ref val, sizeof(int)); // DWMWA_NCRENDERING_POLICY = 2
+
+            Margins margins = new Margins
+            {
+                cxLeftWidth = 1,
+                cxRightWidth = 1,
+                cyTopHeight = 1,
+                cyBottomHeight = 1
+            };
+
+            DwmExtendFrameIntoClientArea(hwnd, ref margins);
         }
     }
 } 

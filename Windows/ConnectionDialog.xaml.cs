@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using Microsoft.Win32;
 using SochoPutty.Models;
 
@@ -11,6 +13,21 @@ namespace SochoPutty.Windows
 {
     public partial class ConnectionDialog : Window
     {
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref Margins pMarInset);
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Margins
+        {
+            public int cxLeftWidth;
+            public int cxRightWidth;
+            public int cyTopHeight;
+            public int cyBottomHeight;
+        }
+
         public ConnectionInfo? Connection { get; private set; }
         private readonly ConnectionManager _connectionManager;
         private readonly string? _originalConnectionName;
@@ -232,6 +249,33 @@ namespace SochoPutty.Windows
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
+        }
+
+        private void CloseWindow_Click(object sender, RoutedEventArgs e)
+        {
+            // 닫기 버튼 클릭 시 취소와 동일하게 처리
+            Cancel_Click(sender, e);
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            var hwnd = new WindowInteropHelper(this).Handle;
+
+            // Enable shadow
+            int val = 2;
+            DwmSetWindowAttribute(hwnd, 2, ref val, sizeof(int)); // DWMWA_NCRENDERING_POLICY = 2
+
+            Margins margins = new Margins
+            {
+                cxLeftWidth = 1,
+                cxRightWidth = 1,
+                cyTopHeight = 1,
+                cyBottomHeight = 1
+            };
+
+            DwmExtendFrameIntoClientArea(hwnd, ref margins);
         }
     }
 } 

@@ -75,7 +75,13 @@ namespace SochoPutty.Models
             
             // 툴바
             ["ToolBarBackground"] = new SolidColorBrush(Color.FromRgb(32, 32, 32)), // #202020 - 어두운 회색
-            ["ToolBarForeground"] = new SolidColorBrush(Color.FromRgb(255, 255, 255)) // #FFFFFF - 흰색 텍스트
+            ["ToolBarForeground"] = new SolidColorBrush(Color.FromRgb(255, 255, 255)), // #FFFFFF - 흰색 텍스트
+            
+            // 커스텀 타이틀바
+            ["TitleBarBackground"] = new SolidColorBrush(Color.FromRgb(60, 60, 60)), // #3C3C3C - 요청된 배경색
+            ["TitleBarForeground"] = new SolidColorBrush(Color.FromRgb(204, 204, 204)), // #CCCCCC - 요청된 글씨색
+            ["TitleBarButtonHover"] = new SolidColorBrush(Color.FromRgb(80, 80, 80)), // #505050 - 버튼 호버
+            ["TitleBarButtonPressed"] = new SolidColorBrush(Color.FromRgb(100, 100, 100)) // #646464 - 버튼 눌림
         };
 
         // 라이트 테마 색상
@@ -129,7 +135,13 @@ namespace SochoPutty.Models
             
             // 툴바
             ["ToolBarBackground"] = new SolidColorBrush(Color.FromRgb(255, 255, 255)),
-            ["ToolBarForeground"] = new SolidColorBrush(Color.FromRgb(0, 0, 0))
+            ["ToolBarForeground"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)),
+            
+            // 커스텀 타이틀바 (라이트 테마)
+            ["TitleBarBackground"] = new SolidColorBrush(Color.FromRgb(240, 240, 240)), // #F0F0F0 - 밝은 배경
+            ["TitleBarForeground"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)), // #000000 - 검은 글씨
+            ["TitleBarButtonHover"] = new SolidColorBrush(Color.FromRgb(229, 241, 251)), // #E5F1FB - 호버
+            ["TitleBarButtonPressed"] = new SolidColorBrush(Color.FromRgb(204, 228, 247)) // #CCE4F7 - 눌림
         };
 
         public static void ApplyTheme(string themeName)

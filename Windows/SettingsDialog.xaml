@@ -3,12 +3,83 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="설정" Height="400" Width="500"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
-    <Grid Margin="10">
+        ResizeMode="NoResize"
+        Background="{DynamicResource WindowBackground}"
+        Foreground="{DynamicResource TextForeground}"
+        WindowStyle="None"
+        AllowsTransparency="False">
+    
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="32"
+                     ResizeBorderThickness="5"
+                     UseAeroCaptionButtons="False"
+                     NonClientFrameEdges="None"
+                     GlassFrameThickness="0"
+                     CornerRadius="0"/>
+    </WindowChrome.WindowChrome>
+    <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="32"/> <!-- 커스텀 타이틀바 -->
+            <RowDefinition Height="*"/> <!-- 메인 컨텐츠 -->
+            <RowDefinition Height="Auto"/> <!-- 버튼 영역 -->
         </Grid.RowDefinitions>
+        
+        <!-- 커스텀 타이틀바 -->
+        <Grid Grid.Row="0" Background="{DynamicResource TitleBarBackground}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- 아이콘과 타이틀 -->
+            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                <Image Source="../app.ico" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="설정" 
+                          FontSize="14" 
+                          FontWeight="Normal"
+                          Foreground="{DynamicResource TitleBarForeground}" 
+                          VerticalAlignment="Center"/>
+            </StackPanel>
+            
+            <!-- 윈도우 컨트롤 버튼 -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True">
+                <Button Name="btnClose" 
+                        Width="46" Height="32" 
+                        Background="Transparent" 
+                        BorderThickness="0"
+                        Foreground="{DynamicResource TitleBarForeground}"
+                        Click="CloseWindow_Click"
+                        ToolTip="닫기">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#E81123"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="#F1707A"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <TextBlock Text="🗙" FontSize="12"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+        
+        <!-- 메인 컨텐츠 -->
+        <Grid Grid.Row="1" Margin="10">
         
         <TabControl Grid.Row="0">
             <!-- 일반 설정 -->
@@ -26,7 +97,7 @@
                                 </Grid.ColumnDefinitions>
                                 
                                 <Label Grid.Row="0" Grid.Column="0" Content="애플리케이션 테마:"/>
-                                <ComboBox Grid.Row="0" Grid.Column="1" Name="cmbApplicationTheme" Margin="5">
+                                <ComboBox Grid.Row="0" Grid.Column="1" Name="cmbApplicationTheme" Margin="5" SelectionChanged="ApplicationTheme_SelectionChanged">
                                     <ComboBoxItem Content="다크 모드" Tag="Dark"/>
                                     <ComboBoxItem Content="일반 모드" Tag="Light"/>
                                 </ComboBox>
@@ -78,9 +149,10 @@
                 </ScrollViewer>
             </TabItem>
         </TabControl>
+        </Grid>
         
         <!-- 버튼 영역 -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,10,10,10">
             <Button Name="btnOK" Content="확인" Width="80" Margin="0,0,10,0" Click="OK_Click" IsDefault="True"/>
             <Button Name="btnCancel" Content="취소" Width="80" Click="Cancel_Click" IsCancel="True"/>
         </StackPanel>
