@@ -26,6 +26,14 @@ namespace SochoPutty
         [DllImport("dwmapi.dll")]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
 
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+        private const uint MONITOR_DEFAULTTONEAREST = 2;
+
         [StructLayout(LayoutKind.Sequential)]
         public struct Margins
         {
@@ -33,6 +41,41 @@ namespace SochoPutty
             public int cxRightWidth;
             public int cyTopHeight;
             public int cyBottomHeight;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MONITORINFO
+        {
+            public uint cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MINMAXINFO
+        {
+            public POINT ptReserved;
+            public POINT ptMaxSize;
+            public POINT ptMaxPosition;
+            public POINT ptMinTrackSize;
+            public POINT ptMaxTrackSize;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -54,6 +97,10 @@ namespace SochoPutty
             };
 
             DwmExtendFrameIntoClientArea(hwnd, ref margins);
+
+            // 최대화 시 작업표시줄을 고려한 크기 조정을 위한 메시지 후킹
+            var source = HwndSource.FromHwnd(hwnd);
+            source?.AddHook(WndProc);
         }
         
         public MainWindow()
@@ -527,6 +574,40 @@ namespace SochoPutty
         private void CloseWindow_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            const int WM_GETMINMAXINFO = 0x0024;
+
+            if (msg == WM_GETMINMAXINFO)
+            {
+                // 최대화 시 작업표시줄을 고려한 크기 제한 설정
+                var mmi = System.Runtime.InteropServices.Marshal.PtrToStructure<MINMAXINFO>(lParam);
+                
+                var monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+                if (monitor != IntPtr.Zero)
+                {
+                    var monitorInfo = new MONITORINFO();
+                    monitorInfo.cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(MONITORINFO));
+                    
+                    if (GetMonitorInfo(monitor, ref monitorInfo))
+                    {
+                        var workArea = monitorInfo.rcWork;
+                        var monitorArea = monitorInfo.rcMonitor;
+                        
+                        mmi.ptMaxPosition.X = Math.Abs(workArea.Left - monitorArea.Left);
+                        mmi.ptMaxPosition.Y = Math.Abs(workArea.Top - monitorArea.Top);
+                        mmi.ptMaxSize.X = Math.Abs(workArea.Right - workArea.Left);
+                        mmi.ptMaxSize.Y = Math.Abs(workArea.Bottom - workArea.Top);
+                    }
+                }
+                
+                System.Runtime.InteropServices.Marshal.StructureToPtr(mmi, lParam, true);
+                handled = true;
+            }
+            
+            return IntPtr.Zero;
         }
 
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)

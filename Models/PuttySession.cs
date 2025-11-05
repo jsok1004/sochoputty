@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Collections.Generic; // Added missing import
 using System.Threading;
+using System.Windows; // Added for Application.Current access
 
 namespace SochoPutty.Models
 {
@@ -48,22 +49,6 @@ namespace SochoPutty.Models
         [DllImport("user32.dll")]
         private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
 
-        [DllImport("user32.dll")]
-        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-
-        [DllImport("user32.dll")]
-        private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT
-        {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
-        private const int SW_HIDE = 0;
         private const int SW_SHOW = 5;
         private const uint SWP_NOZORDER = 0x0004;
         private const uint SWP_NOACTIVATE = 0x0010;
@@ -78,10 +63,6 @@ namespace SochoPutty.Models
         private const int WS_MAXIMIZEBOX = 0x00010000;
         private const int WS_BORDER = 0x00800000;
 
-        // 제목 표시줄과 테두리 크기 (픽셀 단위)
-        private const int TITLE_BAR_HEIGHT = 22;  // 일반적인 제목 표시줄 높이
-        private const int BORDER_WIDTH = 1;       // 일반적인 테두리 두께
-        private const int BORDER_HEIGHT = 1;      // 일반적인 테두리 두께
 
         public ConnectionInfo ConnectionInfo => _connectionInfo;
         public bool IsConnected => _puttyProcess != null && !_puttyProcess.HasExited;
@@ -298,63 +279,8 @@ namespace SochoPutty.Models
             return IntPtr.Zero;
         }
 
-        private (int titleBarHeight, int borderWidth, int borderHeight) _cachedBorders = (0, 0, 0);
-        private bool _bordersCached = false;
 
-        private (int titleBarHeight, int borderWidth, int borderHeight) CalculateWindowBorders()
-        {
-            // 이미 계산된 값이 있으면 재사용 (성능 최적화)
-            if (_bordersCached && _cachedBorders.titleBarHeight > 0)
-            {
-                DebugLogger.LogDebug($"캐시된 테두리 크기 사용: 제목표시줄={_cachedBorders.titleBarHeight}, 테두리={_cachedBorders.borderWidth}x{_cachedBorders.borderHeight}");
-                return _cachedBorders;
-            }
 
-            try
-            {
-                if (_puttyWindowHandle == IntPtr.Zero)
-                {
-                    DebugLogger.LogDebug("PuTTY 창 핸들이 없어 기본 테두리 크기 사용");
-                    _cachedBorders = (TITLE_BAR_HEIGHT, BORDER_WIDTH, BORDER_HEIGHT);
-                    _bordersCached = true;
-                    return _cachedBorders;
-                }
-
-                // 전체 창 크기와 클라이언트 영역 크기 비교로 테두리 크기 계산
-                var windowRectResult = GetWindowRect(_puttyWindowHandle, out RECT windowRect);
-                var clientRectResult = GetClientRect(_puttyWindowHandle, out RECT clientRect);
-
-                if (!windowRectResult || !clientRectResult)
-                {
-                    DebugLogger.LogWarning("창 크기 정보 가져오기 실패, 기본값 사용");
-                    _cachedBorders = (TITLE_BAR_HEIGHT, BORDER_WIDTH, BORDER_HEIGHT);
-                    _bordersCached = true;
-                    return _cachedBorders;
-                }
-
-                var windowWidth = windowRect.Right - windowRect.Left;
-                var windowHeight = windowRect.Bottom - windowRect.Top;
-                var clientWidth = clientRect.Right - clientRect.Left;
-                var clientHeight = clientRect.Bottom - clientRect.Top;
-
-                var borderWidth = Math.Max((windowWidth - clientWidth) / 2, BORDER_WIDTH);
-                var borderHeight = Math.Max(borderWidth, BORDER_HEIGHT);
-                var titleBarHeight = Math.Max(windowHeight - clientHeight - borderHeight, TITLE_BAR_HEIGHT);
-
-                DebugLogger.LogDebug($"계산된 테두리 크기 - 창:{windowWidth}x{windowHeight}, 클라이언트:{clientWidth}x{clientHeight} → 제목표시줄:{titleBarHeight}, 테두리:{borderWidth}x{borderHeight}");
-
-                _cachedBorders = (titleBarHeight, borderWidth, borderHeight);
-                _bordersCached = true;
-                return _cachedBorders;
-            }
-            catch (Exception ex)
-            {
-                DebugLogger.LogError("테두리 크기 계산 중 예외 발생, 기본값 사용", ex);
-                _cachedBorders = (TITLE_BAR_HEIGHT, BORDER_WIDTH, BORDER_HEIGHT);
-                _bordersCached = true;
-                return _cachedBorders;
-            }
-        }
 
         private void EmbedPuttyWindow(IntPtr parentHandle)
         {
@@ -395,17 +321,13 @@ namespace SochoPutty.Models
                 var showWindowResult = ShowWindow(_puttyWindowHandle, SW_SHOW);
                 DebugLogger.LogDebug($"ShowWindow 결과: {showWindowResult}");
                 
-                // 실제 테두리 크기 계산
-                var (titleBarHeight, borderWidth, borderHeight) = CalculateWindowBorders();
+                // 간단한 접근: 기본 크기로 PuTTY 창 설정 (나중에 ResizePuttyWindow에서 정확히 조정됨)
+                var offsetX = -8;  // 좌측 테두리 가리기
+                var offsetY = -30; // 상단 제목표시줄 가리기
+                var expandedWidth = 800 + 16;   // 좌우 테두리 가리기
+                var expandedHeight = 600 + 38;  // 상하 테두리 가리기
                 
-                // 제목 표시줄과 테두리를 가리기 위해 PuTTY 창을 확장하고 음수 위치로 이동
-                var offsetX = -borderWidth;
-                var offsetY = -(titleBarHeight + borderHeight);
-                var expandedWidth = 800 + (borderWidth * 2);
-                var expandedHeight = 600 + titleBarHeight + (borderHeight * 2);
-                
-                DebugLogger.LogDebug($"PuTTY 창 오프셋 위치: ({offsetX}, {offsetY})");
-                DebugLogger.LogDebug($"PuTTY 창 확장 크기: {expandedWidth}x{expandedHeight}");
+                DebugLogger.LogDebug($"PuTTY 창 임베딩 - 기본 크기: {expandedWidth}x{expandedHeight} @ ({offsetX},{offsetY})");
                 
                 // 창 위치와 크기 설정 (제목 표시줄과 테두리 가리기)
                 var setWindowPosResult = SetWindowPos(_puttyWindowHandle, IntPtr.Zero, 
@@ -413,8 +335,7 @@ namespace SochoPutty.Models
                     SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
                 DebugLogger.LogDebug($"SetWindowPos 결과: {setWindowPosResult}");
                 
-                DebugLogger.LogInfo($"PuTTY 창 임베딩 및 테두리 가리기 완료");
-                DebugLogger.LogDebug($"→ 오프셋: ({offsetX}, {offsetY}), 최종 크기: {expandedWidth}x{expandedHeight}");
+                DebugLogger.LogInfo($"PuTTY 창 임베딩 완료");
                 DebugLogger.LogDebug($"→ SetParent: {setParentResult}, ShowWindow: {showWindowResult}, SetWindowPos: {setWindowPosResult}");
             }
             catch (Exception ex)
@@ -435,18 +356,16 @@ namespace SochoPutty.Models
 
             try
             {
-                // 실제 테두리 크기 계산
-                var (titleBarHeight, borderWidth, borderHeight) = CalculateWindowBorders();
+                // 간단한 접근: 활성 세션 크기에 맞춰 PuTTY 창을 정확히 맞춤
+                // PuTTY 창의 테두리를 완전히 가리기 위해 약간 확장하고 오프셋 적용
+                var offsetX = -8;  // 좌측 테두리 가리기
+                var offsetY = -30; // 상단 제목표시줄 가리기
+                var expandedWidth = width + 16;   // 좌우 테두리 가리기 (8 * 2)
+                var expandedHeight = height + 38; // 상하 테두리 가리기 (30 + 8)
                 
-                // 제목 표시줄과 테두리를 가리기 위한 오프셋과 확장 크기 계산
-                var offsetX = -borderWidth;
-                var offsetY = -(titleBarHeight + borderHeight);
-                var expandedWidth = width + (borderWidth * 2);
-                var expandedHeight = height + titleBarHeight + (borderHeight * 2);
+                DebugLogger.LogDebug($"PuTTY 창 크기 조정 - 요청: {width}x{height} → 최종: {expandedWidth}x{expandedHeight} @ ({offsetX},{offsetY})");
                 
-                DebugLogger.LogDebug($"PuTTY 창 크기 조정 계산 - 요청: {width}x{height}, 테두리: {titleBarHeight}+{borderWidth}x{borderHeight}, 최종: {expandedWidth}x{expandedHeight} @ ({offsetX},{offsetY})");
-                
-                // 확장된 크기와 오프셋 위치로 창 크기 조정
+                // PuTTY 창 크기와 위치 설정
                 var setWindowPosResult = SetWindowPos(_puttyWindowHandle, IntPtr.Zero, 
                     offsetX, offsetY, expandedWidth, expandedHeight, 
                     SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
@@ -457,7 +376,7 @@ namespace SochoPutty.Models
                 }
                 else
                 {
-                    DebugLogger.LogWarning($"PuTTY 창 크기 조정 실패 (SetWindowPos 반환값: false): {width}x{height}");
+                    DebugLogger.LogWarning($"PuTTY 창 크기 조정 실패: {width}x{height}");
                 }
             }
             catch (Exception ex)
@@ -547,9 +466,6 @@ namespace SochoPutty.Models
                 // 프로세스 모니터링 중지
                 StopProcessMonitoring();
                 
-                // 캐시 초기화
-                _bordersCached = false;
-                _cachedBorders = (0, 0, 0);
                 
                 if (_puttyProcess != null && !_puttyProcess.HasExited)
                 {
@@ -620,8 +536,6 @@ namespace SochoPutty.Models
                     _puttyWindowHandle = IntPtr.Zero;
                 }
                 
-                _bordersCached = false;
-                _cachedBorders = (0, 0, 0);
                 
                 DebugLogger.LogDebug($"PuTTY 리소스 정리 완료: {_connectionInfo.Name}");
             }
