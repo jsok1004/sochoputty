@@ -3,6 +3,110 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
+        <!-- 메뉴 아이템 커스텀 템플릿 -->
+        <ControlTemplate x:Key="MenuItemControlTemplate" TargetType="MenuItem">
+            <Border x:Name="Border" 
+                    Background="{DynamicResource MenuItemBackground}" 
+                    BorderThickness="0"
+                    Padding="8,4">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="Icon"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="Shortcut"/>
+                        <ColumnDefinition Width="13"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- 아이콘 영역 -->
+                    <ContentPresenter x:Name="Icon"
+                                      Grid.Column="0"
+                                      Margin="0,0,0,0"
+                                      VerticalAlignment="Center"
+                                      ContentSource="Icon"/>
+                    
+                    <!-- 헤더 텍스트 -->
+                    <ContentPresenter x:Name="HeaderHost"
+                                      Grid.Column="1"
+                                      ContentSource="Header"
+                                      RecognizesAccessKey="True"
+                                      VerticalAlignment="Center"/>
+                    
+                    <!-- 단축키 텍스트 -->
+                    <TextBlock x:Name="InputGestureText"
+                               Grid.Column="2"
+                               Text="{TemplateBinding InputGestureText}"
+                               Margin="0,0,0,0"
+                               DockPanel.Dock="Right"
+                               VerticalAlignment="Center"/>
+                    
+                    <!-- 서브메뉴 화살표 -->
+                    <Path x:Name="ArrowPath"
+                          Grid.Column="3"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Data="M 0 0 L 0 7 L 4 3.5 Z"
+                          Fill="{DynamicResource MenuItemForeground}"
+                          Visibility="Collapsed"/>
+                    
+                    <!-- 서브메뉴 팝업 -->
+                    <Popup x:Name="Popup"
+                           Placement="Right"
+                           IsOpen="{TemplateBinding IsSubmenuOpen}"
+                           AllowsTransparency="True"
+                           Focusable="False"
+                           PopupAnimation="Fade">
+                        <Border x:Name="SubmenuBorder"
+                                Background="{DynamicResource MenuItemBackground}"
+                                BorderBrush="{DynamicResource MenuSeparator}"
+                                BorderThickness="1"
+                                Padding="2">
+                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </Border>
+                    </Popup>
+                </Grid>
+            </Border>
+            
+            <ControlTemplate.Triggers>
+                <!-- 서브메뉴가 있는 경우 화살표 표시 -->
+                <Trigger Property="HasItems" Value="True">
+                    <Setter TargetName="ArrowPath" Property="Visibility" Value="Visible"/>
+                </Trigger>
+                
+                <!-- 호버 효과 -->
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource MenuItemHover}"/>
+                </Trigger>
+                
+                <!-- 서브메뉴 열림 효과 -->
+                <Trigger Property="IsSubmenuOpen" Value="True">
+                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource MenuItemHover}"/>
+                </Trigger>
+                
+                <!-- 비활성화 상태 -->
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#FF6D6D6D"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
         
+        <!-- 메뉴 아이템 스타일 -->
+        <Style TargetType="MenuItem">
+            <Setter Property="Background" Value="{DynamicResource MenuItemBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource MenuItemForeground}"/>
+            <Setter Property="Template" Value="{StaticResource MenuItemControlTemplate}"/>
+        </Style>
+        
+        <!-- 메뉴 스타일 -->
+        <Style TargetType="Menu">
+            <Setter Property="Background" Value="{DynamicResource MenuBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource MenuForeground}"/>
+        </Style>
+        
+        <!-- 구분선 스타일 -->
+        <Style TargetType="Separator">
+            <Setter Property="Background" Value="{DynamicResource MenuSeparator}"/>
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Margin" Value="1,1,1,1"/>
+        </Style>
     </Application.Resources>
 </Application> 

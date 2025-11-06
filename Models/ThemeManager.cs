@@ -35,7 +35,15 @@ namespace SochoPutty.Models
             ["TitleBarBackground"] = new SolidColorBrush(Color.FromRgb(60, 60, 60)), // #3C3C3C - 요청된 배경색
             ["TitleBarForeground"] = new SolidColorBrush(Color.FromRgb(204, 204, 204)), // #CCCCCC - 요청된 글씨색
             ["TitleBarButtonHover"] = new SolidColorBrush(Color.FromRgb(80, 80, 80)), // #505050 - 버튼 호버
-            ["TitleBarButtonPressed"] = new SolidColorBrush(Color.FromRgb(100, 100, 100)) // #646464 - 버튼 눌림
+            ["TitleBarButtonPressed"] = new SolidColorBrush(Color.FromRgb(100, 100, 100)), // #646464 - 버튼 눌림
+            
+            // 메뉴 관련 색상
+            ["MenuBackground"] = new SolidColorBrush(Color.FromRgb(45, 45, 45)), // #2D2D2D - 메뉴 배경
+            ["MenuForeground"] = new SolidColorBrush(Color.FromRgb(255, 255, 255)), // #FFFFFF - 메뉴 텍스트
+            ["MenuItemBackground"] = new SolidColorBrush(Color.FromRgb(45, 45, 45)), // #2D2D2D - 메뉴 아이템 배경
+            ["MenuItemForeground"] = new SolidColorBrush(Color.FromRgb(255, 255, 255)), // #FFFFFF - 메뉴 아이템 텍스트
+            ["MenuItemHover"] = new SolidColorBrush(Color.FromRgb(62, 62, 66)), // #3E3E42 - 메뉴 아이템 호버
+            ["MenuSeparator"] = new SolidColorBrush(Color.FromRgb(90, 90, 90)) // #5A5A5A - 메뉴 구분선
         };
 
         // 라이트 테마 색상
@@ -49,7 +57,15 @@ namespace SochoPutty.Models
             ["TitleBarBackground"] = new SolidColorBrush(Color.FromRgb(240, 240, 240)), // #F0F0F0 - 밝은 배경
             ["TitleBarForeground"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)), // #000000 - 검은 글씨
             ["TitleBarButtonHover"] = new SolidColorBrush(Color.FromRgb(229, 241, 251)), // #E5F1FB - 호버
-            ["TitleBarButtonPressed"] = new SolidColorBrush(Color.FromRgb(204, 228, 247)) // #CCE4F7 - 눌림
+            ["TitleBarButtonPressed"] = new SolidColorBrush(Color.FromRgb(204, 228, 247)), // #CCE4F7 - 눌림
+            
+            // 메뉴 관련 색상 (라이트 테마)
+            ["MenuBackground"] = new SolidColorBrush(Color.FromRgb(255, 255, 255)), // #FFFFFF - 메뉴 배경
+            ["MenuForeground"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)), // #000000 - 메뉴 텍스트
+            ["MenuItemBackground"] = new SolidColorBrush(Color.FromRgb(255, 255, 255)), // #FFFFFF - 메뉴 아이템 배경
+            ["MenuItemForeground"] = new SolidColorBrush(Color.FromRgb(0, 0, 0)), // #000000 - 메뉴 아이템 텍스트
+            ["MenuItemHover"] = new SolidColorBrush(Color.FromRgb(229, 241, 251)), // #E5F1FB - 메뉴 아이템 호버
+            ["MenuSeparator"] = new SolidColorBrush(Color.FromRgb(160, 160, 160)) // #A0A0A0 - 메뉴 구분선
         };
 
         public static void ApplyTheme(string themeName)

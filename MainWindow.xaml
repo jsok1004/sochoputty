@@ -176,30 +176,29 @@
         </Grid>
        
         <!-- 툴바 -->
-        <Menu Grid.Row="1" Background="{DynamicResource TitleBarBackground}">
-            <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="도구(_T)">
-                <MenuItem Background="{DynamicResource TitleBarBackground}" Foreground="{DynamicResource TitleBarForeground}" Header="설정(_S)" Click="Settings_Click"/>
+        <Menu Grid.Row="1" Background="{DynamicResource MenuBackground}">
+            <MenuItem Header="도구(_T)">
+                <MenuItem Header="설정(_S)" Click="Settings_Click"/>
                 <Separator/>
-                <MenuItem Background="{DynamicResource TitleBarBackground}" Foreground="{DynamicResource TitleBarForeground}" Header="디버그(_D)">
-                    <MenuItem Background="{DynamicResource TitleBarBackground}" Foreground="{DynamicResource TitleBarForeground}" Header="디버그 로그 보기" Click="ShowDebugLog_Click"/>
-                    <MenuItem Background="{DynamicResource TitleBarBackground}" Foreground="{DynamicResource TitleBarForeground}" Header="로그 폴더 열기" Click="OpenLogFolder_Click"/>
-                    <MenuItem Background="{DynamicResource TitleBarBackground}" Foreground="{DynamicResource TitleBarForeground}" Header="로그 초기화" Click="ClearDebugLog_Click"/>
+                <MenuItem Header="디버그(_D)">
+                    <MenuItem Header="디버그 로그 보기" Click="ShowDebugLog_Click"/>
+                    <MenuItem Header="로그 폴더 열기" Click="OpenLogFolder_Click"/>
+                    <MenuItem Header="로그 초기화" Click="ClearDebugLog_Click"/>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Background="{DynamicResource TitleBarBackground}" Foreground="{DynamicResource TitleBarForeground}" Header="정보(_A)" Click="About_Click"/>
+                <MenuItem Header="정보(_A)" Click="About_Click"/>
             </MenuItem>
-            <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="새 연결(_N)" Click="NewConnection_Click"/>
-            <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="연결 관리(_M)" Click="ManageConnections_Click"/>
-            <ComboBox Name="cmbQuickConnect" Width="200" 
+            <MenuItem Header="새 연결(_N)" Click="NewConnection_Click"/>
+            <MenuItem Header="연결 관리(_M)" Click="ManageConnections_Click"/>
+            <ComboBox Name="cmbQuickConnect" Width="180" 
                                   SelectionChanged="QuickConnect_SelectionChanged"
                                   IsEditable="True"
                                   Text="빠른 연결 선택..."/>
-            <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="🔗" Click="QuickConnect_Click"/>
-            <Separator/>
-            <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="⬚분할 해제(_Q)" Click="UnsplitAll_Click"/>
-            <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="↕가로 분할(_A)" Click="SplitHorizontal_Click"/>
-            <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="↔새로 분할(_S)" Click="SplitVertical_Click"/>
-            <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="🔠4화면 분할(_D)" Click="SplitQuad_Click"/>
+            <MenuItem Header="🔗" Click="QuickConnect_Click"/>
+            <MenuItem Header="⬚분할 해제(_Q)" Click="UnsplitAll_Click"/>
+            <MenuItem Header="↕가로 분할(_A)" Click="SplitHorizontal_Click"/>
+            <MenuItem Header="↔새로 분할(_S)" Click="SplitVertical_Click"/>
+            <MenuItem Header="🔠4화면 분할(_D)" Click="SplitQuad_Click"/>
         </Menu>
         
         <!-- 메인 컨텐츠 영역 -->
