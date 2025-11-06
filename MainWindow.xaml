@@ -105,7 +105,40 @@
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
-                    <TextBlock Text="🗖" FontSize="12"/>
+                    <TextBlock Name="btnMaximizeIcon" Text="🗖" FontSize="12"/>
+                </Button>
+                
+                <Button Name="btnRestore" 
+                        Width="46" Height="32" 
+                        Background="Transparent" 
+                        BorderThickness="0"
+                        Foreground="{DynamicResource TitleBarForeground}"
+                        Click="RestoreWindow_Click"
+                        ToolTip="이전 크기로 복원"
+                        Visibility="Collapsed">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}">
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource TitleBarButtonHover}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="{DynamicResource TitleBarButtonPressed}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <TextBlock Text="🗗" FontSize="12"/>
                 </Button>
                 
                 <Button Name="btnClose" 
@@ -167,9 +200,6 @@
             <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="↕가로 분할(_A)" Click="SplitHorizontal_Click"/>
             <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="↔새로 분할(_S)" Click="SplitVertical_Click"/>
             <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="🔠4화면 분할(_D)" Click="SplitQuad_Click"/>
-            
-            <Separator/>
-            <MenuItem Foreground="{DynamicResource TitleBarForeground}" Header="Socho Putty Manager V1.3" Click="About_Click" FontSize="12" FontWeight="Bold" HorizontalAlignment="Right" Margin="0,0,10,0"/>
         </Menu>
         
         <!-- 메인 컨텐츠 영역 -->

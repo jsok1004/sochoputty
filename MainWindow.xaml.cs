@@ -111,6 +111,12 @@ namespace SochoPutty
             
             // 설정에서 테마 로드 및 적용
             LoadAndApplyTheme();
+            
+            // 윈도우 상태 변경 이벤트 핸들러 등록
+            StateChanged += MainWindow_StateChanged;
+            
+            // 초기 버튼 상태 설정
+            UpdateMaximizeRestoreButtons();
         }
 
         private void InitializeManagers()
@@ -568,12 +574,36 @@ namespace SochoPutty
 
         private void MaximizeWindow_Click(object sender, RoutedEventArgs e)
         {
-            WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+            WindowState = WindowState.Maximized;
+        }
+
+        private void RestoreWindow_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Normal;
         }
 
         private void CloseWindow_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void MainWindow_StateChanged(object? sender, EventArgs e)
+        {
+            UpdateMaximizeRestoreButtons();
+        }
+
+        private void UpdateMaximizeRestoreButtons()
+        {
+            if (WindowState == WindowState.Maximized)
+            {
+                btnMaximize.Visibility = Visibility.Collapsed;
+                btnRestore.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                btnMaximize.Visibility = Visibility.Visible;
+                btnRestore.Visibility = Visibility.Collapsed;
+            }
         }
 
         private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
