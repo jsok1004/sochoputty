@@ -84,23 +84,21 @@ namespace SochoPutty.Models
                 Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(248, 249, 250))
             };
 
+            // ScrollViewer 추가하여 스크롤 가능하게 만들기
+            var scrollViewer = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Padding = new Thickness(20)
+            };
+
             var stackPanel = new StackPanel
             {
                 HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 20, 0, 20)
             };
 
-            // 제목 추가
-            var titleText = new TextBlock
-            {
-                Text = $"{Name} 영역",
-                FontSize = 20,
-                FontWeight = FontWeights.Bold,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 20),
-                Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(52, 58, 64))
-            };
-            stackPanel.Children.Add(titleText);
 
             // 빠른 연결 섹션 추가
             if (connectionManager != null)
@@ -115,18 +113,106 @@ namespace SochoPutty.Models
                     BorderThickness = new Thickness(1)
                 };
 
-                var quickConnectPanel = new StackPanel();
+                var savedConnectionsPanel = new StackPanel();
 
                 // 빠른 연결 제목
+                var titleAndQuickConnectPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Margin = new Thickness(0, 0, 0, 15)
+                };
+
                 var quickConnectTitle = new TextBlock
                 {
                     Text = "빠른 연결",
                     FontSize = 18,
                     FontWeight = FontWeights.SemiBold,
-                    Margin = new Thickness(0, 0, 0, 15),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 20, 0),
                     Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(73, 80, 87))
                 };
-                quickConnectPanel.Children.Add(quickConnectTitle);
+                titleAndQuickConnectPanel.Children.Add(quickConnectTitle);
+
+                // 빠른 접속 입력 영역 (반응형 레이아웃)
+                var quickConnectInputPanel = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                var ipLabel = new TextBlock
+                {
+                    Text = "IP 주소:",
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 10, 0),
+                    FontSize = 14
+                };
+                quickConnectInputPanel.Children.Add(ipLabel);
+
+                var ipTextBox = new TextBox
+                {
+                    Width = 200,
+                    Height = 30,
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 10, 0),
+                    FontSize = 14,
+                    Name = "QuickConnectTextBox"
+                };
+                
+                // 플레이스홀더 효과
+                ipTextBox.GotFocus += (s, e) =>
+                {
+                    if (ipTextBox.Text == "예: 192.168.1.100:22")
+                    {
+                        ipTextBox.Text = "";
+                        ipTextBox.Foreground = System.Windows.Media.Brushes.Black;
+                    }
+                };
+                
+                ipTextBox.LostFocus += (s, e) =>
+                {
+                    if (string.IsNullOrWhiteSpace(ipTextBox.Text))
+                    {
+                        ipTextBox.Text = "예: 192.168.1.100:22";
+                        ipTextBox.Foreground = System.Windows.Media.Brushes.Gray;
+                    }
+                };
+                
+                // 초기 플레이스홀더 설정
+                ipTextBox.Text = "예: 192.168.1.100:22";
+                ipTextBox.Foreground = System.Windows.Media.Brushes.Gray;
+                
+                // Enter 키 처리
+                ipTextBox.KeyDown += (s, e) =>
+                {
+                    if (e.Key == Key.Enter)
+                    {
+                        ProcessQuickConnect(ipTextBox.Text, quickConnectHandler);
+                    }
+                };
+                
+                quickConnectInputPanel.Children.Add(ipTextBox);
+
+                var connectButton = new Button
+                {
+                    Content = "접속",
+                    Width = 80,
+                    Height = 30,
+                    FontSize = 14,
+                    Background = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 123, 255)),
+                    Foreground = System.Windows.Media.Brushes.White,
+                    BorderThickness = new Thickness(0),
+                    Cursor = Cursors.Hand
+                };
+                
+                connectButton.Click += (s, e) =>
+                {
+                    ProcessQuickConnect(ipTextBox.Text, quickConnectHandler);
+                };
+                
+                quickConnectInputPanel.Children.Add(connectButton);
+                titleAndQuickConnectPanel.Children.Add(quickConnectInputPanel);
+                savedConnectionsPanel.Children.Add(titleAndQuickConnectPanel);
 
                 // 연결 목록 또는 "연결 없음" 메시지
                 var connections = connectionManager.GetAllConnections();
@@ -140,7 +226,7 @@ namespace SochoPutty.Models
                         FontStyle = FontStyles.Italic,
                         Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(108, 117, 125))
                     };
-                    quickConnectPanel.Children.Add(noConnectionsText);
+                    savedConnectionsPanel.Children.Add(noConnectionsText);
                 }
                 else
                 {
@@ -148,7 +234,7 @@ namespace SochoPutty.Models
                     var connectionsListBox = new ListBox
                     {
                         BorderThickness = new Thickness(0),
-                        MaxHeight = 400
+                        MaxHeight = 300
                     };
                     ScrollViewer.SetHorizontalScrollBarVisibility(connectionsListBox, ScrollBarVisibility.Disabled);
 
@@ -165,10 +251,10 @@ namespace SochoPutty.Models
                     var itemTemplate = CreateConnectionItemTemplate(quickConnectHandler);
                     connectionsListBox.ItemTemplate = itemTemplate;
 
-                    quickConnectPanel.Children.Add(connectionsListBox);
+                    savedConnectionsPanel.Children.Add(connectionsListBox);
                 }
 
-                quickConnectBorder.Child = quickConnectPanel;
+                quickConnectBorder.Child = savedConnectionsPanel;
                 stackPanel.Children.Add(quickConnectBorder);
             }
             else
@@ -184,7 +270,8 @@ namespace SochoPutty.Models
                 stackPanel.Children.Add(defaultText);
             }
 
-            startContent.Children.Add(stackPanel);
+            scrollViewer.Content = stackPanel;
+            startContent.Children.Add(scrollViewer);
             startTab.Content = startContent;
             TabControl.Items.Add(startTab);
         }
@@ -433,6 +520,73 @@ namespace SochoPutty.Models
                 return parent;
             
             return FindParent<T>(parentObject);
+        }
+
+        private static void ProcessQuickConnect(string input, EventHandler<ConnectionInfo>? quickConnectHandler)
+        {
+            try
+            {
+                // 플레이스홀더 텍스트 확인
+                if (string.IsNullOrWhiteSpace(input) || input == "예: 192.168.1.100:22")
+                {
+                    System.Windows.MessageBox.Show("IP 주소를 입력해주세요.", "빠른 접속", 
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
+
+                // IP와 포트 파싱
+                string hostname;
+                int port = 22; // 기본 포트
+
+                if (input.Contains(':'))
+                {
+                    var parts = input.Split(':');
+                    hostname = parts[0].Trim();
+                    
+                    if (parts.Length > 1 && int.TryParse(parts[1].Trim(), out int parsedPort))
+                    {
+                        port = parsedPort;
+                    }
+                    else
+                    {
+                        System.Windows.MessageBox.Show("올바른 포트 번호를 입력해주세요.", "빠른 접속", 
+                            System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        return;
+                    }
+                }
+                else
+                {
+                    hostname = input.Trim();
+                }
+
+                // IP 주소 유효성 검사 (기본적인 검사)
+                if (string.IsNullOrWhiteSpace(hostname))
+                {
+                    System.Windows.MessageBox.Show("올바른 IP 주소를 입력해주세요.", "빠른 접속", 
+                        System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    return;
+                }
+
+                // ConnectionInfo 생성
+                var connectionInfo = new ConnectionInfo
+                {
+                    Name = $"빠른접속-{hostname}:{port}",
+                    Hostname = hostname,
+                    Port = port,
+                    ConnectionType = ConnectionType.SSH,
+                    Username = "", // 사용자가 PuTTY에서 직접 입력
+                    Password = "",
+                    PrivateKeyPath = ""
+                };
+
+                // 빠른 연결 이벤트 발생
+                quickConnectHandler?.Invoke(null, connectionInfo);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"빠른 접속 중 오류가 발생했습니다: {ex.Message}", "오류", 
+                    System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
 
         #endregion
@@ -737,5 +891,6 @@ namespace SochoPutty.Models
         {
             return activeSplitPane?.TabControl;
         }
+
     }
 } 
