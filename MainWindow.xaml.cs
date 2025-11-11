@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -8,6 +9,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Runtime.InteropServices;
+using System.Windows.Input;
 using SochoPutty.Models;
 using SochoPutty.Windows;
 
@@ -19,6 +21,14 @@ namespace SochoPutty
         private SettingsManager settingsManager = null!;
         private List<PuttySession> activeSessions = null!;
         private SplitManager splitManager = null!;
+        private SimpleP2PChatManager? chatManager;
+        private ChatHistoryStore? chatHistoryStore;
+        private readonly ObservableCollection<ChatPeer> chatPeers = new();
+        private readonly Dictionary<string, ObservableCollection<SimpleP2PChatMessage>> chatMessages = new();
+        private readonly Dictionary<string, ChatHistoryEntry> chatHistoryEntries = new();
+        private readonly ObservableCollection<SimpleP2PChatMessage> emptyMessageCollection = new();
+        private ChatPeer? selectedChatPeer;
+        private bool chatInitialized;
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmExtendFrameIntoClientArea(IntPtr hwnd, ref Margins pMarInset);
@@ -106,6 +116,11 @@ namespace SochoPutty
         public MainWindow()
         {
             InitializeComponent();
+            lstPeers.ItemsSource = chatPeers;
+            lstMessages.ItemsSource = emptyMessageCollection;
+            btnSendChat.IsEnabled = false;
+            txtChatInput.IsEnabled = false;
+            Loaded += MainWindow_Loaded;
             InitializeManagers();
             LoadQuickConnections();
             
@@ -147,6 +162,349 @@ namespace SochoPutty
             cmbQuickConnect.DisplayMemberPath = "Name";
             
             // 빠른 연결 목록은 이제 SplitManager의 "시작" 탭에서 자동 처리됨
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            await InitializeChatAsync();
+        }
+
+        private async Task InitializeChatAsync()
+        {
+            if (chatInitialized)
+            {
+                return;
+            }
+
+            chatInitialized = true;
+            chatHistoryStore = new ChatHistoryStore();
+
+            chatManager = new SimpleP2PChatManager();
+            chatManager.PeerUpdated += ChatManager_PeerUpdated;
+            chatManager.MessageReceived += ChatManager_MessageReceived;
+            chatManager.MessageSent += ChatManager_MessageSent;
+            chatManager.StatusChanged += ChatManager_StatusChanged;
+
+            try
+            {
+                await chatManager.StartAsync();
+                txtLocalIpAddress.Text = chatManager.LocalIpAddress;
+                txtChatStatus.Text = "P2P 채팅 준비 완료";
+            }
+            catch (Exception ex)
+            {
+                txtChatStatus.Text = "채팅 초기화 실패";
+                DebugLogger.LogError("P2P 채팅 초기화 실패", ex);
+                MessageBox.Show($"P2P 채팅 기능을 초기화할 수 없습니다: {ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Error);
+                chatInitialized = false;
+                return;
+            }
+
+            chatHistoryEntries.Clear();
+            chatMessages.Clear();
+            emptyMessageCollection.Clear();
+            selectedChatPeer = null;
+            lstPeers.SelectedItem = null;
+            lstMessages.ItemsSource = emptyMessageCollection;
+            btnSendChat.IsEnabled = false;
+            txtChatInput.IsEnabled = false;
+
+            var historyEntries = chatHistoryStore.Load();
+            foreach (var entry in historyEntries.OrderByDescending(e => e.LastMessageTime))
+            {
+                chatHistoryEntries[entry.PeerIpAddress] = entry;
+                var normalizedMessages = (entry.Messages ?? new List<SimpleP2PChatMessage>())
+                    .Select(PrepareMessageForStorage)
+                    .OrderBy(m => m.Timestamp)
+                    .ToList();
+                entry.Messages = normalizedMessages;
+
+                var collection = GetOrCreateMessageCollection(entry.PeerIpAddress);
+                collection.Clear();
+                foreach (var storedMessage in normalizedMessages)
+                {
+                    var displayMessage = CreateDisplayMessage(storedMessage);
+                    collection.Add(displayMessage);
+                }
+
+                var peer = new ChatPeer
+                {
+                    IpAddress = entry.PeerIpAddress,
+                    LastOnlineTime = entry.LastMessageTime,
+                    IsOnline = false,
+                    IsKnown = true
+                };
+
+                chatManager.UpdatePeerFromHistory(peer);
+            }
+
+            await chatManager.ManualDiscoveryAsync();
+            UpdateChatStatus();
+        }
+
+        private ObservableCollection<SimpleP2PChatMessage> GetOrCreateMessageCollection(string peerIpAddress)
+        {
+            if (!chatMessages.TryGetValue(peerIpAddress, out var messages))
+            {
+                messages = new ObservableCollection<SimpleP2PChatMessage>();
+                chatMessages[peerIpAddress] = messages;
+            }
+
+            return messages;
+        }
+
+        private SimpleP2PChatMessage PrepareMessageForStorage(SimpleP2PChatMessage message)
+        {
+            var timestamp = message.Timestamp;
+            if (timestamp.Kind == DateTimeKind.Unspecified)
+            {
+                timestamp = DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
+            }
+            else if (timestamp.Kind == DateTimeKind.Local)
+            {
+                timestamp = timestamp.ToUniversalTime();
+            }
+
+            return new SimpleP2PChatMessage
+            {
+                SenderIpAddress = message.SenderIpAddress,
+                RecipientIpAddress = message.RecipientIpAddress,
+                Content = message.Content,
+                Timestamp = timestamp
+            };
+        }
+
+        private SimpleP2PChatMessage CreateDisplayMessage(SimpleP2PChatMessage storageMessage)
+        {
+            var timestamp = storageMessage.Timestamp;
+            if (timestamp.Kind == DateTimeKind.Unspecified)
+            {
+                timestamp = DateTime.SpecifyKind(timestamp, DateTimeKind.Utc);
+            }
+            if (timestamp.Kind == DateTimeKind.Utc)
+            {
+                timestamp = timestamp.ToLocalTime();
+            }
+
+            return new SimpleP2PChatMessage
+            {
+                SenderIpAddress = storageMessage.SenderIpAddress,
+                RecipientIpAddress = storageMessage.RecipientIpAddress,
+                Content = storageMessage.Content,
+                Timestamp = timestamp
+            };
+        }
+
+        private void AppendMessage(string peerIpAddress, SimpleP2PChatMessage storageMessage)
+        {
+            var collection = GetOrCreateMessageCollection(peerIpAddress);
+            var displayMessage = CreateDisplayMessage(storageMessage);
+            collection.Add(displayMessage);
+
+            if (!chatHistoryEntries.TryGetValue(peerIpAddress, out var historyEntry))
+            {
+                historyEntry = new ChatHistoryEntry
+                {
+                    PeerIpAddress = peerIpAddress
+                };
+                chatHistoryEntries[peerIpAddress] = historyEntry;
+            }
+
+            historyEntry.Messages.Add(storageMessage);
+            historyEntry.LastMessageTime = storageMessage.Timestamp;
+            PersistChatHistory();
+
+            if (selectedChatPeer != null && selectedChatPeer.IpAddress == peerIpAddress)
+            {
+                if (!ReferenceEquals(lstMessages.ItemsSource, collection))
+                {
+                    lstMessages.ItemsSource = collection;
+                }
+
+                lstMessages.ScrollIntoView(displayMessage);
+            }
+        }
+
+        private void PersistChatHistory()
+        {
+            if (chatHistoryStore == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var snapshot = chatHistoryEntries.Values
+                    .Select(entry => new ChatHistoryEntry
+                    {
+                        PeerIpAddress = entry.PeerIpAddress,
+                        LastMessageTime = entry.LastMessageTime,
+                        Messages = entry.Messages
+                            .Select(msg => new SimpleP2PChatMessage
+                            {
+                                SenderIpAddress = msg.SenderIpAddress,
+                                RecipientIpAddress = msg.RecipientIpAddress,
+                                Content = msg.Content,
+                                Timestamp = msg.Timestamp
+                            })
+                            .ToList()
+                    })
+                    .ToList();
+
+                chatHistoryStore.Save(snapshot);
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError("채팅 기록 저장 실패", ex);
+            }
+        }
+
+        private void UpdateChatStatus()
+        {
+            var onlineCount = chatPeers.Count(peer => peer.IsOnline);
+            txtChatStatus.Text = onlineCount > 0 ? $"온라인 사용자 {onlineCount}명" : "온라인 사용자 없음";
+        }
+
+        private void ChatManager_PeerUpdated(object? sender, ChatPeer peer)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var existing = chatPeers.FirstOrDefault(p => p.IpAddress == peer.IpAddress);
+                if (existing == null)
+                {
+                    chatPeers.Add(peer);
+                }
+                else if (!ReferenceEquals(existing, peer))
+                {
+                    var index = chatPeers.IndexOf(existing);
+                    chatPeers[index] = peer;
+                }
+
+                GetOrCreateMessageCollection(peer.IpAddress);
+                UpdateChatStatus();
+            }));
+        }
+
+        private void ChatManager_MessageReceived(object? sender, SimpleP2PChatManager.ChatMessageEventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var storageMessage = PrepareMessageForStorage(e.Message);
+                AppendMessage(e.PeerIpAddress, storageMessage);
+
+                if (selectedChatPeer == null)
+                {
+                    var peer = chatPeers.FirstOrDefault(p => p.IpAddress == e.PeerIpAddress);
+                    if (peer != null)
+                    {
+                        lstPeers.SelectedItem = peer;
+                    }
+                }
+            }));
+        }
+
+        private void ChatManager_MessageSent(object? sender, SimpleP2PChatManager.ChatMessageEventArgs e)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var storageMessage = PrepareMessageForStorage(e.Message);
+                AppendMessage(e.PeerIpAddress, storageMessage);
+            }));
+        }
+
+        private void ChatManager_StatusChanged(object? sender, string status)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                txtChatStatus.Text = status;
+                DebugLogger.LogInfo($"채팅 상태: {status}");
+            }));
+        }
+
+        private async void RefreshPeers_Click(object sender, RoutedEventArgs e)
+        {
+            if (chatManager == null)
+            {
+                await InitializeChatAsync();
+                return;
+            }
+
+            try
+            {
+                txtChatStatus.Text = "사용자 검색 중...";
+                await chatManager.ManualDiscoveryAsync();
+                UpdateChatStatus();
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError("사용자 검색 중 오류", ex);
+                MessageBox.Show($"사용자 검색 중 오류가 발생했습니다: {ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void Peers_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            selectedChatPeer = lstPeers.SelectedItem as ChatPeer;
+            if (selectedChatPeer != null)
+            {
+                var collection = GetOrCreateMessageCollection(selectedChatPeer.IpAddress);
+                lstMessages.ItemsSource = collection;
+                btnSendChat.IsEnabled = true;
+                txtChatInput.IsEnabled = true;
+                txtChatInput.Focus();
+            }
+            else
+            {
+                lstMessages.ItemsSource = emptyMessageCollection;
+                btnSendChat.IsEnabled = false;
+                txtChatInput.IsEnabled = false;
+            }
+        }
+
+        private async void SendChat_Click(object sender, RoutedEventArgs e)
+        {
+            await SendCurrentMessageAsync();
+        }
+
+        private async void ChatInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && (Keyboard.Modifiers == ModifierKeys.None))
+            {
+                e.Handled = true;
+                await SendCurrentMessageAsync();
+            }
+        }
+
+        private async Task SendCurrentMessageAsync()
+        {
+            if (chatManager == null || selectedChatPeer == null)
+            {
+                return;
+            }
+
+            var text = txtChatInput.Text;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return;
+            }
+
+            btnSendChat.IsEnabled = false;
+
+            try
+            {
+                await chatManager.SendMessageAsync(selectedChatPeer.IpAddress, text.Trim());
+                txtChatInput.Clear();
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError("채팅 메시지 전송 실패", ex);
+                MessageBox.Show($"메시지를 전송할 수 없습니다: {ex.Message}", "오류", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally
+            {
+                btnSendChat.IsEnabled = true;
+                txtChatInput.Focus();
+            }
         }
 
         private void NewConnection_Click(object sender, RoutedEventArgs e)
@@ -845,6 +1203,7 @@ namespace SochoPutty
             try
             {
                 DebugLogger.LogInfo($"메인 윈도우 종료 시작 - 활성 세션: {activeSessions.Count}개");
+                chatManager?.Dispose();
                 
                 // 모든 활성 세션을 복사하여 백그라운드에서 정리
                 var sessionsToClose = activeSessions.ToList();
