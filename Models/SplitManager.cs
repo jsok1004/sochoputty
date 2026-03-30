@@ -18,6 +18,8 @@ namespace SochoPutty.Models
 
     public class SplitPane
     {
+        private const string QuickConnectPlaceholderText = "예: 192.168.1.100:22";
+
         public TabControl TabControl { get; set; }
         public Border Container { get; set; }
         public string Name { get; set; }
@@ -162,7 +164,7 @@ namespace SochoPutty.Models
                 // 플레이스홀더 효과
                 ipTextBox.GotFocus += (s, e) =>
                 {
-                    if (ipTextBox.Text == "예: 192.168.1.100:22")
+                    if (ipTextBox.Text == QuickConnectPlaceholderText)
                     {
                         ipTextBox.Text = "";
                         ipTextBox.Foreground = System.Windows.Media.Brushes.Black;
@@ -173,13 +175,13 @@ namespace SochoPutty.Models
                 {
                     if (string.IsNullOrWhiteSpace(ipTextBox.Text))
                     {
-                        ipTextBox.Text = "예: 192.168.1.100:22";
+                        ipTextBox.Text = QuickConnectPlaceholderText;
                         ipTextBox.Foreground = System.Windows.Media.Brushes.Gray;
                     }
                 };
                 
                 // 초기 플레이스홀더 설정
-                ipTextBox.Text = "예: 192.168.1.100:22";
+                ipTextBox.Text = QuickConnectPlaceholderText;
                 ipTextBox.Foreground = System.Windows.Media.Brushes.Gray;
                 
                 // Enter 키 처리
@@ -251,7 +253,49 @@ namespace SochoPutty.Models
                     var itemTemplate = CreateConnectionItemTemplate(quickConnectHandler);
                     connectionsListBox.ItemTemplate = itemTemplate;
 
-                    savedConnectionsPanel.Children.Add(connectionsListBox);
+                    var noMatchText = new TextBlock
+                    {
+                        Text = "일치하는 저장 연결이 없습니다.",
+                        Visibility = Visibility.Collapsed,
+                        Margin = new Thickness(0, 8, 0, 0),
+                        FontStyle = FontStyles.Italic,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(108, 117, 125))
+                    };
+
+                    void RefreshSavedConnectionsList()
+                    {
+                        var text = ipTextBox.Text;
+                        if (string.IsNullOrWhiteSpace(text) || text == QuickConnectPlaceholderText)
+                        {
+                            connectionsListBox.ItemsSource = connectionManager.GetAllConnections();
+                            connectionsListBox.Visibility = Visibility.Visible;
+                            noMatchText.Visibility = Visibility.Collapsed;
+                            return;
+                        }
+
+                        var filtered = connectionManager.FilterConnections(text);
+                        if (filtered.Count == 0)
+                        {
+                            connectionsListBox.ItemsSource = null;
+                            connectionsListBox.Visibility = Visibility.Collapsed;
+                            noMatchText.Visibility = Visibility.Visible;
+                        }
+                        else
+                        {
+                            connectionsListBox.ItemsSource = filtered;
+                            connectionsListBox.Visibility = Visibility.Visible;
+                            noMatchText.Visibility = Visibility.Collapsed;
+                        }
+                    }
+
+                    ipTextBox.TextChanged += (s, e) => RefreshSavedConnectionsList();
+                    RefreshSavedConnectionsList();
+
+                    var connectionsListContainer = new StackPanel();
+                    connectionsListContainer.Children.Add(connectionsListBox);
+                    connectionsListContainer.Children.Add(noMatchText);
+                    savedConnectionsPanel.Children.Add(connectionsListContainer);
                 }
 
                 quickConnectBorder.Child = savedConnectionsPanel;
@@ -527,7 +571,7 @@ namespace SochoPutty.Models
             try
             {
                 // 플레이스홀더 텍스트 확인
-                if (string.IsNullOrWhiteSpace(input) || input == "예: 192.168.1.100:22")
+                if (string.IsNullOrWhiteSpace(input) || input == QuickConnectPlaceholderText)
                 {
                     System.Windows.MessageBox.Show("IP 주소를 입력해주세요.", "빠른 접속", 
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);

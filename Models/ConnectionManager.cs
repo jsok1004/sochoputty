@@ -36,6 +36,35 @@ namespace SochoPutty.Models
             return _connections.ToList();
         }
 
+        /// <summary>
+        /// 이름, 호스트, 설명, Hostname:Port 조합에 대해 부분 일치(대소문자 무시)로 필터링합니다.
+        /// 공백만 있는 경우 전체 목록을 반환합니다.
+        /// </summary>
+        public IReadOnlyList<ConnectionInfo> FilterConnections(string? query)
+        {
+            var all = GetAllConnections();
+            if (string.IsNullOrWhiteSpace(query))
+                return all;
+
+            var q = query.Trim();
+            return all.Where(c => ConnectionMatchesQuery(c, q)).ToList();
+        }
+
+        private static bool ConnectionMatchesQuery(ConnectionInfo c, string q)
+        {
+            const StringComparison cmp = StringComparison.OrdinalIgnoreCase;
+            if (c.Name.Contains(q, cmp))
+                return true;
+            if (c.Hostname.Contains(q, cmp))
+                return true;
+            if (!string.IsNullOrEmpty(c.Description) && c.Description.Contains(q, cmp))
+                return true;
+            var hostPort = $"{c.Hostname}:{c.Port}";
+            if (hostPort.Contains(q, cmp))
+                return true;
+            return false;
+        }
+
         public void AddConnection(ConnectionInfo connection)
         {
             if (connection == null)
