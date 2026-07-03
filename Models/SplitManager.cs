@@ -452,7 +452,7 @@ namespace SochoPutty.Models
             if (e.Source is FrameworkElement element)
             {
                 var tabItem = FindParent<TabItem>(element);
-                if (tabItem != null && tabItem.Tag is PuttySession)
+                if (tabItem != null && tabItem.Tag is TerminalSession)
                 {
                     draggingTab = tabItem;
                 }
@@ -530,7 +530,7 @@ namespace SochoPutty.Models
                     }
                     
                     // 시작 탭인 경우 이동 불가
-                    if (droppedTab.Tag is not PuttySession)
+                    if (droppedTab.Tag is not TerminalSession)
                     {
                         return;
                     }
@@ -545,7 +545,7 @@ namespace SochoPutty.Models
                     TabControl.Items.Add(droppedTab);
                     TabControl.SelectedItem = droppedTab;
                     
-                    DebugLogger.LogInfo($"탭 드래그앤드롭 완료: {((PuttySession)droppedTab.Tag).ConnectionInfo.Name} → {Name}");
+                    DebugLogger.LogInfo($"탭 드래그앤드롭 완료: {((TerminalSession)droppedTab.Tag).ConnectionInfo.Name} → {Name}");
                 }
             }
             catch (Exception ex)
@@ -618,7 +618,7 @@ namespace SochoPutty.Models
                     Hostname = hostname,
                     Port = port,
                     ConnectionType = ConnectionType.SSH,
-                    Username = "", // 사용자가 PuTTY에서 직접 입력
+                    Username = "", // 사용자가 터미널에서 직접 입력
                     Password = "",
                     PrivateKeyPath = ""
                 };
@@ -885,10 +885,10 @@ namespace SochoPutty.Models
             ActivePaneChanged?.Invoke(this, pane);
         }
 
-        public List<TabItem> GetAllPuttyTabs()
+        public List<TabItem> GetAllTerminalTabs()
         {
-            var puttyTabs = new List<TabItem>();
-            
+            var terminalTabs = new List<TabItem>();
+
             try
             {
                 // 분할 모드에 따라 수집 영역 결정
@@ -901,9 +901,9 @@ namespace SochoPutty.Models
                         {
                             foreach (var item in splitPane.TabControl.Items)
                             {
-                                if (item is TabItem tab && tab.Tag is PuttySession)
+                                if (item is TabItem tab && tab.Tag is TerminalSession)
                                 {
-                                    puttyTabs.Add(tab);
+                                    terminalTabs.Add(tab);
                                 }
                             }
                         }
@@ -912,10 +912,10 @@ namespace SochoPutty.Models
             }
             catch (Exception ex)
             {
-                DebugLogger.LogError("GetAllPuttyTabs 실행 중 오류 발생", ex);
+                DebugLogger.LogError("GetAllTerminalTabs 실행 중 오류 발생", ex);
             }
-            
-            return puttyTabs;
+
+            return terminalTabs;
         }
 
         public void ClearSplit()

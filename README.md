@@ -1,6 +1,6 @@
-# Socho Putty Manager
+# Socho Terminal Manager
 
-PuTTY를 위한 고급 연결 관리자로, 다중 탭 인터페이스와 편리한 기능들을 제공합니다.
+Windows 기본 **PowerShell 콘솔 + OpenSSH(`ssh`)** 를 위한 고급 SSH 연결 관리자로, 다중 탭 인터페이스와 편리한 기능들을 제공합니다. (별도의 PuTTY 설치가 필요 없습니다.)
 
 ## 주요 기능
 
@@ -11,8 +11,8 @@ PuTTY를 위한 고급 연결 관리자로, 다중 탭 인터페이스와 편리
 - **가져오기/내보내기**: JSON 형식으로 연결 설정을 백업하고 복원
 
 ### 📑 다중 탭 인터페이스
-- **탭 기반 관리**: 여러 PuTTY 세션을 하나의 창에서 관리
-- **PuTTY 임베딩**: PuTTY 창을 애플리케이션 내부에 통합
+- **탭 기반 관리**: 여러 SSH 세션을 하나의 창에서 관리
+- **터미널 임베딩**: PowerShell 콘솔 창을 애플리케이션 내부에 통합
 - **세션 상태 관리**: 각 탭의 연결 상태를 실시간으로 모니터링
 
 ### 🔧 편의 기능
@@ -28,33 +28,32 @@ PuTTY를 위한 고급 연결 관리자로, 다중 탭 인터페이스와 편리
 
 ## 시스템 요구사항
 
-- **운영체제**: Windows 10 이상
-- **.NET Framework**: .NET 9.0 이상
-- **PuTTY**: 프로젝트에 포함됨 (별도 설치 불필요)
+- **운영체제**: Windows 10 (1809) 이상
+- **.NET**: .NET 9.0 Desktop Runtime 이상
+- **OpenSSH 클라이언트**: Windows 기본 포함(설정 > 앱 > 선택적 기능 > "OpenSSH 클라이언트"). `ssh.exe`가 `C:\Windows\System32\OpenSSH\`에 있어야 함
+- **PowerShell**: Windows 기본 포함 (`powershell.exe`)
+
+> PuTTY는 더 이상 필요하지 않습니다. 접속은 임베딩된 PowerShell 콘솔에서 Windows 기본 `ssh`로 이루어집니다.
 
 ## 설치 방법
 
-1. **.NET 9.0 Runtime 설치**
+1. **.NET 9.0 Desktop Runtime 설치**
    - [Microsoft .NET 다운로드 페이지](https://dotnet.microsoft.com/download/dotnet/9.0)에서 다운로드
-   - Windows Desktop Runtime 설치 필수
+   - Windows **Desktop** Runtime 설치 필수
 
-2. **PuTTY 실행 파일 준비**
-   - [PuTTY 공식 사이트](https://www.putty.org/)에서 `putty.exe` 다운로드
-   - 다운로드한 `putty.exe` 파일을 프로젝트 루트 디렉토리에 복사
-   - 파일 경로: `socho_putty/putty.exe`
+2. **OpenSSH 클라이언트 확인**
+   - Windows 설정 > 앱 > 선택적 기능에서 "OpenSSH 클라이언트"가 설치되어 있는지 확인
+   - PowerShell에서 `ssh -V` 로 확인 가능
 
-3. **Socho Putty Manager 빌드**
+3. **Socho Terminal Manager 빌드**
    ```bash
    # 리포지토리 클론
    git clone <repository-url>
-   cd socho_putty
-   
-   # putty.exe 파일을 프로젝트 루트에 복사
-   # (위 2단계에서 다운로드한 파일)
-   
+   cd sochoputty
+
    # 프로젝트 빌드
    dotnet build
-   
+
    # 실행
    dotnet run
    ```
@@ -85,7 +84,6 @@ PuTTY를 위한 고급 연결 관리자로, 다중 탭 인터페이스와 편리
 ## 설정 옵션
 
 ### 일반 설정
-- **PuTTY 경로**: PuTTY 실행 파일 위치 지정
 - **인터페이스**: 도구모음, 상태표시줄 표시 여부
 - **탭 위치**: 탭의 위치 설정 (상단/하단/좌측/우측)
 
@@ -100,10 +98,10 @@ PuTTY를 위한 고급 연결 관리자로, 다중 탭 인터페이스와 편리
 
 ## 지원하는 연결 타입
 
-- **SSH**: Secure Shell (포트 22)
-- **Telnet**: Telnet 프로토콜 (포트 23)  
-- **Raw**: Raw TCP 연결
-- **Rlogin**: Remote Login (포트 513)
+- **SSH**: Secure Shell (포트 22) — Windows 기본 OpenSSH(`ssh`) 사용
+
+> Telnet/Raw/Rlogin은 OpenSSH `ssh`에 대응 명령이 없어 더 이상 지원하지 않습니다.
+> **인증**: OpenSSH는 비밀번호를 명령줄로 자동 전송할 수 없습니다. 접속 후 터미널에 직접 입력하거나, OpenSSH 형식 개인키(`-i`) 인증을 사용하세요.
 
 ## 데이터 저장 위치
 
@@ -116,10 +114,10 @@ PuTTY를 위한 고급 연결 관리자로, 다중 탭 인터페이스와 편리
 
 ## 문제 해결
 
-### PuTTY를 찾을 수 없음
-- PuTTY가 설치되어 있는지 확인
-- 설정에서 PuTTY 경로를 수동으로 지정
-- 환경 변수 PATH에 PuTTY 경로 추가
+### OpenSSH 클라이언트(ssh.exe)를 찾을 수 없음
+- Windows 설정 > 앱 > 선택적 기능에서 "OpenSSH 클라이언트" 설치
+- PowerShell에서 `ssh -V` 로 설치 확인
+- `C:\Windows\System32\OpenSSH\ssh.exe` 경로 존재 확인
 
 ### 연결이 실패함
 - 호스트명과 포트 번호 확인
@@ -150,7 +148,7 @@ PuTTY를 위한 고급 연결 관리자로, 다중 탭 인터페이스와 편리
 - 초기 릴리즈
 - 기본 연결 관리 기능
 - 다중 탭 인터페이스
-- PuTTY 임베딩 기능
+- 터미널(PowerShell 콘솔) 임베딩 기능
 - 설정 관리 시스템 
 
 ## 업그레이드 후 혜택

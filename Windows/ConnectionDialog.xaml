@@ -107,10 +107,11 @@
                         <Label Grid.Row="2" Grid.Column="0" Content="포트:" Foreground="{DynamicResource TextForeground}"/>
                         <TextBox Grid.Row="2" Grid.Column="1" Name="txtPort" Margin="5"/>
                         
-                        <Label Grid.Row="3" Grid.Column="0" Content="연결 타입:" Foreground="{DynamicResource TextForeground}"/>
-                        <ComboBox Grid.Row="3" Grid.Column="1" Name="cmbConnectionType" Margin="5"
-                                  SelectionChanged="ConnectionType_SelectionChanged"/>
-                        
+                        <Label Grid.Row="3" Grid.Column="0" Content="프로토콜:" Foreground="{DynamicResource TextForeground}"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Name="txtProtocol" Margin="7,0,0,0"
+                                   Text="SSH (OpenSSH)" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextForeground}"/>
+
                         <Label Grid.Row="4" Grid.Column="0" Content="설명:" Foreground="{DynamicResource TextForeground}"/>
                         <TextBox Grid.Row="4" Grid.Column="1" Name="txtDescription" Margin="5" 
                                  TextWrapping="Wrap" AcceptsReturn="True" Height="60"/>
@@ -124,23 +125,28 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="100"/>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        
+
                         <Label Grid.Row="0" Grid.Column="0" Content="사용자명:" Foreground="{DynamicResource TextForeground}"/>
                         <TextBox Grid.Row="0" Grid.Column="1" Name="txtUsername" Margin="5"/>
-                        
+
                         <Label Grid.Row="1" Grid.Column="0" Content="비밀번호:" Foreground="{DynamicResource TextForeground}"/>
                         <PasswordBox Grid.Row="1" Grid.Column="1" Name="pwdPassword" Margin="5"/>
-                        
+
                         <Label Grid.Row="2" Grid.Column="0" Content="개인키 파일:" Foreground="{DynamicResource TextForeground}"/>
                         <TextBox Grid.Row="2" Grid.Column="1" Name="txtPrivateKeyPath" Margin="5"/>
-                        <Button Grid.Row="2" Grid.Column="2" Name="btnBrowseKey" Content="찾기..." 
+                        <Button Grid.Row="2" Grid.Column="2" Name="btnBrowseKey" Content="찾기..."
                                 Margin="5" Width="60" Click="BrowseKey_Click"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="5,0,5,0"
+                                   TextWrapping="Wrap" FontSize="11" Foreground="Gray"
+                                   Text="※ OpenSSH는 비밀번호를 자동 전송할 수 없습니다. 접속 후 터미널에 직접 입력하거나 개인키(OpenSSH 형식) 인증을 사용하세요."/>
                     </Grid>
                 </GroupBox>
                 

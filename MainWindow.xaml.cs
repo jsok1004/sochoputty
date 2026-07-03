@@ -17,7 +17,7 @@ namespace SochoPutty
     {
         private ConnectionManager connectionManager = null!;
         private SettingsManager settingsManager = null!;
-        private List<PuttySession> activeSessions = null!;
+        private List<TerminalSession> activeSessions = null!;
         private SplitManager splitManager = null!;
 
         [DllImport("dwmapi.dll")]
@@ -123,7 +123,7 @@ namespace SochoPutty
         {
             connectionManager = new ConnectionManager();
             settingsManager = new SettingsManager();
-            activeSessions = new List<PuttySession>();
+            activeSessions = new List<TerminalSession>();
             
             // SplitManager 초기화 - 단일 모드로 시작
             splitManager = new SplitManager(splitContainer, connectionManager);
@@ -232,13 +232,13 @@ namespace SochoPutty
                     throw new ArgumentException("호스트명이 지정되지 않았습니다.");
                 }
 
-                var session = new PuttySession(connection);
-                
-                // PuTTY 프로세스 종료 이벤트 연결
-                session.ProcessExited += () => OnPuttyProcessExited(session);
-                
+                var session = new TerminalSession(connection);
+
+                // 터미널 프로세스 종료 이벤트 연결
+                session.ProcessExited += () => OnTerminalProcessExited(session);
+
                 activeSessions.Add(session);
-                DebugLogger.LogDebug($"PuttySession 생성 완료. 활성 세션 수: {activeSessions.Count}");
+                DebugLogger.LogDebug($"TerminalSession 생성 완료. 활성 세션 수: {activeSessions.Count}");
 
                 // 탭을 추가할 TabControl 결정 - 항상 활성 분할 영역 사용
                 TabControl targetTabControl = splitManager.GetActiveTabControl() ?? throw new InvalidOperationException("활성 분할 영역을 찾을 수 없습니다.");
@@ -248,7 +248,7 @@ namespace SochoPutty
                 tabItem.Header = CreateTabHeader(connection.Name, session);
                 tabItem.Tag = session;
 
-                // PuTTY가 임베드될 컨테이너
+                // 터미널이 임베드될 컨테이너
                 var windowsFormsHost = new System.Windows.Forms.Integration.WindowsFormsHost();
                 var panel = new System.Windows.Forms.Panel();
                 panel.Dock = System.Windows.Forms.DockStyle.Fill; // 패널이 전체 영역을 채우도록
@@ -260,7 +260,7 @@ namespace SochoPutty
                     var newSize = e.NewSize;
                     if (newSize.Width > 0 && newSize.Height > 0)
                     {
-                        session.ResizePuttyWindow((int)newSize.Width, (int)newSize.Height);
+                        session.ResizeTerminalWindow((int)newSize.Width, (int)newSize.Height);
                         DebugLogger.LogDebug($"SizeChanged로 정확한 크기 조정: {newSize.Width}x{newSize.Height}");
                     }
                 };
@@ -271,14 +271,14 @@ namespace SochoPutty
 
                 DebugLogger.LogDebug($"탭 생성 완료. Panel Handle: {panel.Handle}");
 
-                // PuTTY 프로세스 시작
-                var success = await session.StartPutty(panel.Handle).ConfigureAwait(false);
+                // 터미널 프로세스 시작
+                var success = await session.StartTerminal(panel.Handle).ConfigureAwait(false);
                 
                 if (success)
                 {
                     DebugLogger.LogInfo($"세션 '{connection.Name}' 생성 성공");
                     
-                    // PuTTY 시작 후 즉시 현재 탭 크기로 강제 크기 조정 (최초 1회)
+                    // 터미널 시작 후 즉시 현재 탭 크기로 강제 크기 조정 (최초 1회)
                     await Dispatcher.BeginInvoke(new Action(() =>
                     {
                         try
@@ -289,8 +289,8 @@ namespace SochoPutty
                             
                             if (currentWidth > 0 && currentHeight > 0)
                             {
-                                session.ResizePuttyWindow((int)currentWidth, (int)currentHeight);
-                                DebugLogger.LogInfo($"PuTTY 시작 후 최초 크기 조정 완료: {currentWidth}x{currentHeight}");
+                                session.ResizeTerminalWindow((int)currentWidth, (int)currentHeight);
+                                DebugLogger.LogInfo($"터미널 시작 후 최초 크기 조정 완료: {currentWidth}x{currentHeight}");
                             }
                             else
                             {
@@ -300,30 +300,30 @@ namespace SochoPutty
                                 
                                 if (renderWidth > 0 && renderHeight > 0)
                                 {
-                                    session.ResizePuttyWindow((int)renderWidth, (int)renderHeight);
-                                    DebugLogger.LogInfo($"PuTTY 시작 후 RenderSize로 크기 조정 완료: {renderWidth}x{renderHeight}");
+                                    session.ResizeTerminalWindow((int)renderWidth, (int)renderHeight);
+                                    DebugLogger.LogInfo($"터미널 시작 후 RenderSize로 크기 조정 완료: {renderWidth}x{renderHeight}");
                                 }
                                 else
                                 {
                                     // 마지막 시도: 기본 크기로 설정 후 SizeChanged가 자동 호출되도록
-                                    DebugLogger.LogWarning("PuTTY 시작 후 크기 정보 없음, SizeChanged 이벤트 대기");
+                                    DebugLogger.LogWarning("터미널 시작 후 크기 정보 없음, SizeChanged 이벤트 대기");
                                 }
                             }
                             
                             // 포커스 설정
-                            session.FocusPuttyWindow();
+                            session.FocusTerminalWindow();
                             DebugLogger.LogDebug($"새 세션 포커스 설정 완료: {connection.Name}");
                         }
                         catch (Exception ex)
                         {
-                            DebugLogger.LogError("PuTTY 시작 후 크기 조정 및 포커스 설정 실패", ex);
+                            DebugLogger.LogError("터미널 시작 후 크기 조정 및 포커스 설정 실패", ex);
                         }
                     }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
                 }
                 else
                 {
                     DebugLogger.LogError($"세션 '{connection.Name}' 생성 실패");
-                    MessageBox.Show($"PuTTY 연결을 시작할 수 없습니다.\n\n연결 정보를 확인하거나 디버그 로그를 확인해주세요.", 
+                    MessageBox.Show($"터미널 연결을 시작할 수 없습니다.\n\n연결 정보를 확인하거나 디버그 로그를 확인해주세요.",
                                   "연결 실패", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
@@ -364,18 +364,18 @@ namespace SochoPutty
             try
             {
                 // 모든 활성 세션을 수집
-                var existingPuttyTabs = splitManager.GetAllPuttyTabs();
-                DebugLogger.LogInfo($"분할 모드 변경 시작: {splitManager.CurrentMode} → {mode}, 기존 PuTTY 탭 수: {existingPuttyTabs.Count}");
-                
+                var existingTerminalTabs = splitManager.GetAllTerminalTabs();
+                DebugLogger.LogInfo($"분할 모드 변경 시작: {splitManager.CurrentMode} → {mode}, 기존 터미널 탭 수: {existingTerminalTabs.Count}");
+
                 // 새로운 분할 모드 적용
                 splitManager.ApplySplit(mode);
-                
+
                 // 모든 활성 세션을 첫 번째 영역으로 자동 이동
-                if (existingPuttyTabs.Count > 0 && splitManager.SplitPanes.Count > 0)
+                if (existingTerminalTabs.Count > 0 && splitManager.SplitPanes.Count > 0)
                 {
                     var firstPane = splitManager.SplitPanes[0];
-                    MovePuttyTabsToPane(existingPuttyTabs, firstPane);
-                    DebugLogger.LogInfo($"PuTTY 탭 이동 완료: {existingPuttyTabs.Count}개 → {firstPane.Name}");
+                    MoveTerminalTabsToPane(existingTerminalTabs, firstPane);
+                    DebugLogger.LogInfo($"터미널 탭 이동 완료: {existingTerminalTabs.Count}개 → {firstPane.Name}");
                     
                     // 첫 번째 영역을 활성화
                     splitManager.SetActivePane(firstPane);
@@ -393,17 +393,17 @@ namespace SochoPutty
 
 
 
-        private void MovePuttyTabsToPane(List<TabItem> puttyTabs, SplitPane targetPane)
+        private void MoveTerminalTabsToPane(List<TabItem> terminalTabs, SplitPane targetPane)
         {
             try
             {
-                DebugLogger.LogInfo($"PuTTY 탭들을 {targetPane.Name} 영역으로 이동 시작: {puttyTabs.Count}개");
-                
+                DebugLogger.LogInfo($"터미널 탭들을 {targetPane.Name} 영역으로 이동 시작: {terminalTabs.Count}개");
+
                 // 탭들의 정보를 저장하고 UI 요소에서 분리
-                var tabsInfo = new List<(PuttySession session, object? header, object? content)>();
-                foreach (var tab in puttyTabs)
+                var tabsInfo = new List<(TerminalSession session, object? header, object? content)>();
+                foreach (var tab in terminalTabs)
                 {
-                    if (tab.Tag is PuttySession session)
+                    if (tab.Tag is TerminalSession session)
                     {
                         // UI 요소에서 분리하기 전에 정보 저장
                         var header = tab.Header;
@@ -439,27 +439,27 @@ namespace SochoPutty
             }
         }
 
-        private void CloseAllPuttyTabs(List<TabItem> puttyTabs)
+        private void CloseAllTerminalTabs(List<TabItem> terminalTabs)
         {
             try
             {
-                DebugLogger.LogInfo($"PuTTY 탭들 종료 시작: {puttyTabs.Count}개");
-                
-                foreach (var tab in puttyTabs)
+                DebugLogger.LogInfo($"터미널 탭들 종료 시작: {terminalTabs.Count}개");
+
+                foreach (var tab in terminalTabs)
                 {
-                    if (tab.Tag is PuttySession session)
+                    if (tab.Tag is TerminalSession session)
                     {
                         session.Dispose();
                         activeSessions.Remove(session);
                         DebugLogger.LogDebug($"세션 종료 완료: {session.ConnectionInfo.Name}");
                     }
                 }
-                
-                DebugLogger.LogInfo($"PuTTY 탭들 종료 완료: {puttyTabs.Count}개, 남은 활성 세션: {activeSessions.Count}");
+
+                DebugLogger.LogInfo($"터미널 탭들 종료 완료: {terminalTabs.Count}개, 남은 활성 세션: {activeSessions.Count}");
             }
             catch (Exception ex)
             {
-                DebugLogger.LogError("PuTTY 탭들 종료 중 오류", ex);
+                DebugLogger.LogError("터미널 탭들 종료 중 오류", ex);
             }
         }
 
@@ -485,18 +485,18 @@ namespace SochoPutty
                 for (int i = 0; i < splitManager.SplitPanes.Count; i++)
                 {
                     var pane = splitManager.SplitPanes[i];
-                    var puttyTabs = 0;
-                    
+                    var terminalTabs = 0;
+
                     foreach (var item in pane.TabControl.Items)
                     {
-                        if (item is TabItem tab && tab.Tag is PuttySession)
+                        if (item is TabItem tab && tab.Tag is TerminalSession)
                         {
-                            puttyTabs++;
+                            terminalTabs++;
                         }
                     }
-                    
+
                     var activeIndicator = pane.IsActive ? " (활성)" : "";
-                    statusMessage += $"• {pane.Name} 영역{activeIndicator}: {puttyTabs}개 PuTTY 탭\n";
+                    statusMessage += $"• {pane.Name} 영역{activeIndicator}: {terminalTabs}개 터미널 탭\n";
                 }
                 
                 statusMessage += "\n=== 세션 상세 정보 ===\n";
@@ -526,7 +526,7 @@ namespace SochoPutty
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Socho Putty Manager v1.4.0 \n\nPuTTY 연결을 편리하게 관리하는 도구입니다.\n\nmade by socho", 
+            MessageBox.Show("Socho Terminal Manager v1.5.0 \n\nPowerShell 콘솔에서 OpenSSH(ssh) 연결을 편리하게 관리하는 도구입니다.\n\nmade by socho",
                           "정보", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -645,8 +645,8 @@ namespace SochoPutty
             // 탭 변경 시 포커스 설정 및 크기 재조정
             if (e.Source is TabControl sourceTabControl && sourceTabControl.SelectedItem is TabItem selectedTab)
             {
-                // 선택된 탭이 PuTTY 세션을 포함하는 탭인지 확인
-                if (selectedTab.Tag is PuttySession session)
+                // 선택된 탭이 터미널 세션을 포함하는 탭인지 확인
+                if (selectedTab.Tag is TerminalSession session)
                 {
                     // 약간의 지연 후 포커스 설정 및 크기 조정 (UI 업데이트 완료 후)
                     Dispatcher.BeginInvoke(new Action(() =>
@@ -656,13 +656,13 @@ namespace SochoPutty
                             // WindowsFormsHost 찾기
                             if (selectedTab.Content is System.Windows.Forms.Integration.WindowsFormsHost windowsFormsHost)
                             {
-                                // 현재 탭 크기로 PuTTY 창 크기 조정
+                                // 현재 탭 크기로 터미널 창 크기 조정
                                 var currentWidth = windowsFormsHost.ActualWidth;
                                 var currentHeight = windowsFormsHost.ActualHeight;
-                                
+
                                 if (currentWidth > 0 && currentHeight > 0)
                                 {
-                                    session.ResizePuttyWindow((int)currentWidth, (int)currentHeight);
+                                    session.ResizeTerminalWindow((int)currentWidth, (int)currentHeight);
                                     DebugLogger.LogDebug($"탭 활성화 시 크기 조정: {session.ConnectionInfo.Name} → {currentWidth}x{currentHeight}");
                                 }
                                 else
@@ -672,7 +672,7 @@ namespace SochoPutty
                             }
                             
                             // 포커스 설정
-                            session.FocusPuttyWindow();
+                            session.FocusTerminalWindow();
                             DebugLogger.LogDebug($"탭 변경 시 포커스 설정: {session.ConnectionInfo.Name}");
                             
                             // 드래그앤드롭으로 이동된 탭인 경우 해당 분할 영역을 활성화
@@ -692,7 +692,7 @@ namespace SochoPutty
             // 우클릭 컨텍스트 메뉴 (향후 구현 가능)
         }
 
-        private StackPanel CreateTabHeader(string title, PuttySession session)
+        private StackPanel CreateTabHeader(string title, TerminalSession session)
         {
             var stackPanel = new StackPanel();
             stackPanel.Orientation = Orientation.Horizontal;
@@ -729,13 +729,13 @@ namespace SochoPutty
 
         private void CloseTab_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.Tag is PuttySession session)
+            if (sender is Button button && button.Tag is TerminalSession session)
             {
                 CloseSession(session);
             }
         }
 
-        private void CloseSession(PuttySession session)
+        private void CloseSession(TerminalSession session)
         {
             try
             {
@@ -794,21 +794,21 @@ namespace SochoPutty
             }
         }
 
-        private void OnPuttyProcessExited(PuttySession session)
+        private void OnTerminalProcessExited(TerminalSession session)
         {
-            DebugLogger.LogInfo($"PuTTY 프로세스 종료 감지: {session.ConnectionInfo.Name}");
-            
+            DebugLogger.LogInfo($"터미널 프로세스 종료 감지: {session.ConnectionInfo.Name}");
+
             // UI 스레드에서 탭 닫기 실행
             Dispatcher.BeginInvoke(new Action(() =>
             {
                 try
                 {
                     CloseSession(session);
-                    DebugLogger.LogInfo($"PuTTY 프로세스 종료로 인한 자동 탭 닫기 완료: {session.ConnectionInfo.Name}");
+                    DebugLogger.LogInfo($"터미널 프로세스 종료로 인한 자동 탭 닫기 완료: {session.ConnectionInfo.Name}");
                 }
                 catch (Exception ex)
                 {
-                    DebugLogger.LogError($"PuTTY 프로세스 종료 후 자동 탭 닫기 실패: {session.ConnectionInfo.Name}", ex);
+                    DebugLogger.LogError($"터미널 프로세스 종료 후 자동 탭 닫기 실패: {session.ConnectionInfo.Name}", ex);
                 }
             }));
         }

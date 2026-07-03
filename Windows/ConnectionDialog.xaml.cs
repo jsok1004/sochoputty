@@ -38,8 +38,6 @@ namespace SochoPutty.Windows
             _connectionManager = connectionManager ?? new ConnectionManager();
             _originalConnectionName = connection?.Name;
             
-            InitializeConnectionTypes();
-            
             if (connection != null)
             {
                 LoadConnection(connection);
@@ -48,15 +46,9 @@ namespace SochoPutty.Windows
             else
             {
                 Title = "새 연결";
-                // 기본값 설정
-                cmbConnectionType.SelectedValue = ConnectionType.SSH;
+                // 기본값 설정 (SSH 전용)
                 txtPort.Text = "22";
             }
-        }
-
-        private void InitializeConnectionTypes()
-        {
-            cmbConnectionType.ItemsSource = Enum.GetValues(typeof(ConnectionType));
         }
 
         private void LoadConnection(ConnectionInfo connection)
@@ -68,7 +60,6 @@ namespace SochoPutty.Windows
             pwdPassword.Password = connection.Password;
             txtPrivateKeyPath.Text = connection.PrivateKeyPath;
             txtDescription.Text = connection.Description;
-            cmbConnectionType.SelectedValue = connection.ConnectionType;
         }
 
         private ConnectionInfo CreateConnectionFromInput()
@@ -82,7 +73,7 @@ namespace SochoPutty.Windows
                 Password = pwdPassword.Password,
                 PrivateKeyPath = txtPrivateKeyPath.Text.Trim(),
                 Description = txtDescription.Text.Trim(),
-                ConnectionType = (ConnectionType)cmbConnectionType.SelectedValue
+                ConnectionType = ConnectionType.SSH
             };
         }
 
@@ -121,40 +112,12 @@ namespace SochoPutty.Windows
             return true;
         }
 
-        private void ConnectionType_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (cmbConnectionType.SelectedValue == null) return;
-
-            var connectionType = (ConnectionType)cmbConnectionType.SelectedValue;
-            
-            // 연결 타입에 따라 기본 포트 설정
-            if (string.IsNullOrEmpty(txtPort.Text) || 
-                txtPort.Text == "22" || txtPort.Text == "23" || txtPort.Text == "513")
-            {
-                switch (connectionType)
-                {
-                    case ConnectionType.SSH:
-                        txtPort.Text = "22";
-                        break;
-                    case ConnectionType.Telnet:
-                        txtPort.Text = "23";
-                        break;
-                    case ConnectionType.Rlogin:
-                        txtPort.Text = "513";
-                        break;
-                    case ConnectionType.Raw:
-                        // Raw 연결은 기본 포트가 없음
-                        break;
-                }
-            }
-        }
-
         private void BrowseKey_Click(object sender, RoutedEventArgs e)
         {
             var openFileDialog = new OpenFileDialog
             {
-                Title = "개인키 파일 선택",
-                Filter = "PuTTY Private Key Files (*.ppk)|*.ppk|모든 파일 (*.*)|*.*",
+                Title = "개인키 파일 선택 (OpenSSH 형식)",
+                Filter = "OpenSSH 키 (id_*, *.pem, *.key)|id_*;*.pem;*.key|모든 파일 (*.*)|*.*",
                 CheckFileExists = true
             };
 

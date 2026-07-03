@@ -1,7 +1,7 @@
 <Window x:Class="SochoPutty.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Socho Putty Manager" Height="750" Width="1000"
+        Title="Socho Terminal Manager" Height="750" Width="1000"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource WindowBackground}"
         WindowStyle="None"
@@ -35,8 +35,8 @@
             <!-- 아이콘과 타이틀 -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
                 <Image Source="app.ico" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBlock Text="Socho Putty Manager" 
-                          FontSize="14" 
+                <TextBlock Text="Socho Terminal Manager"
+                          FontSize="14"
                           FontWeight="Normal"
                           Foreground="{DynamicResource TitleBarForeground}" 
                           VerticalAlignment="Center"/>

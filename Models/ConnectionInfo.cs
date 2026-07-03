@@ -71,11 +71,6 @@ namespace SochoPutty.Models
             {
                 _connectionType = value;
                 OnPropertyChanged(nameof(ConnectionType));
-                // SSH가 아닐 때 기본 포트 변경
-                if (value == ConnectionType.Telnet && Port == 22)
-                    Port = 23;
-                else if (value == ConnectionType.SSH && Port == 23)
-                    Port = 22;
             }
         }
 
@@ -129,9 +124,6 @@ namespace SochoPutty.Models
 
     public enum ConnectionType
     {
-        SSH,
-        Telnet,
-        Raw,
-        Rlogin
+        SSH
     }
 } 

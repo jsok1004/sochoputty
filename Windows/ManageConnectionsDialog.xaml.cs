@@ -289,7 +289,7 @@ namespace SochoPutty.Windows
                 Title = "연결 설정 내보내기",
                 Filter = "JSON 파일 (*.json)|*.json",
                 DefaultExt = "json",
-                FileName = "putty_connections.json"
+                FileName = "sochoputty_connections.json"
             };
 
             if (saveFileDialog.ShowDialog() == true)
