@@ -190,6 +190,7 @@
             </MenuItem>
             <MenuItem Header="새 연결(_N)" Click="NewConnection_Click"/>
             <MenuItem Header="연결 관리(_M)" Click="ManageConnections_Click"/>
+            <MenuItem Header="🔑 비밀번호 입력(_P)" Click="SendPassword_Click" ToolTip="활성 터미널에 저장된 비밀번호 입력"/>
             <ComboBox Name="cmbQuickConnect" Width="180" 
                                   SelectionChanged="QuickConnect_SelectionChanged"
                                   IsEditable="True"

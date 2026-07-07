@@ -12,7 +12,7 @@ namespace SochoPutty.Models
 {
     /// <summary>
     /// 임베딩된 PowerShell 콘솔에서 Windows 기본 OpenSSH(ssh)를 실행하는 세션.
-    /// conhost.exe로 레거시 콘솔 창을 강제 생성한 뒤, 해당 콘솔 창(ConsoleWindowClass)을
+    /// powershell.exe를 숨김 상태로 직접 실행한 뒤, 콘솔 창(ConsoleWindowClass)을
     /// SetParent로 앱 탭의 WinForms Panel에 리페어런팅(임베딩)한다.
     /// </summary>
     public class TerminalSession : IDisposable
@@ -37,13 +37,18 @@ namespace SochoPutty.Models
         private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
         [DllImport("user32.dll")]
-        private static extern bool SetFocus(IntPtr hWnd);
+        private static extern IntPtr SetFocus(IntPtr hWnd);
 
+        // 다른 프로세스 소유 창에 SetFocus 하려면 입력 큐를 연결해야 함
         [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
+        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
 
+        [DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
+
+        // 임베드된 콘솔 창에 문자 입력(WM_CHAR)을 전달하기 위한 메시지 전송
         [DllImport("user32.dll")]
-        private static extern bool BringWindowToTop(IntPtr hWnd);
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32.dll")]
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -60,9 +65,6 @@ namespace SochoPutty.Models
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
 
-        [DllImport("user32.dll")]
-        private static extern bool IsWindowVisible(IntPtr hWnd);
-
         private const int SW_SHOW = 5;
         private const uint SWP_NOZORDER = 0x0004;
         private const uint SWP_NOACTIVATE = 0x0010;
@@ -76,6 +78,11 @@ namespace SochoPutty.Models
         private const int WS_MINIMIZEBOX = 0x00020000;
         private const int WS_MAXIMIZEBOX = 0x00010000;
         private const int WS_BORDER = 0x00800000;
+        private const int WS_CHILD = 0x40000000;
+        private const int WS_POPUP = unchecked((int)0x80000000);
+
+        // 콘솔 창에 문자 입력을 전달하는 메시지
+        private const uint WM_CHAR = 0x0102;
 
         // 레거시 콘솔 창 클래스명
         private const string ConsoleWindowClass = "ConsoleWindowClass";
@@ -112,16 +119,23 @@ namespace SochoPutty.Models
 
                 DebugLogger.LogInfo($"OpenSSH 클라이언트 발견: {sshPath}");
 
-                var conhostPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "conhost.exe");
-                var arguments = BuildConhostArguments();
-                DebugLogger.LogInfo($"터미널 실행 명령: {conhostPath} {arguments}");
+                // powershell.exe를 직접 실행한다. 콘솔 창(ConsoleWindowClass)은 호환성 계층에 의해
+                // 루트 클라이언트(powershell) PID를 보고하므로 _process.Id로 정확히 매칭된다.
+                // (conhost.exe 래퍼 경유 시 창이 자식 powershell PID로 보고되어 매칭에 실패했음)
+                var powershellPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),
+                    "WindowsPowerShell", "v1.0", "powershell.exe");
+                var arguments = BuildPowerShellArguments();
+                DebugLogger.LogInfo($"터미널 실행 명령: {powershellPath} {arguments}");
 
                 var startInfo = new ProcessStartInfo
                 {
-                    FileName = conhostPath,
+                    FileName = powershellPath,
                     Arguments = arguments,
-                    UseShellExecute = false,
-                    CreateNoWindow = false
+                    // WindowStyle은 ShellExecute 경로에서만 적용된다
+                    UseShellExecute = true,
+                    // 콘솔 창을 숨김 상태로 생성 → 임베드 전 데스크톱 노출/포커스 탈취 방지.
+                    // 숨김 세션은 Win11 기본 터미널(Windows Terminal) 위임도 발생하지 않는다.
+                    WindowStyle = ProcessWindowStyle.Hidden
                 };
 
                 _process = Process.Start(startInfo);
@@ -205,19 +219,17 @@ namespace SochoPutty.Models
         }
 
         /// <summary>
-        /// conhost.exe에 전달할 인자를 생성한다.
-        /// 형태: powershell.exe -NoExit -Command "ssh ..."
-        /// conhost.exe로 감싸 Win11 기본 터미널(Windows Terminal) 설정과 무관하게
-        /// 리페어런팅 가능한 레거시 콘솔 창을 강제한다.
+        /// powershell.exe에 전달할 인자를 생성한다.
+        /// 형태: -NoLogo -NoExit -Command "& { ssh ... }"
         /// </summary>
-        private string BuildConhostArguments()
+        private string BuildPowerShellArguments()
         {
             var sshCommand = BuildSshCommand();
             DebugLogger.LogDebug($"SSH 명령: {sshCommand}");
 
             // PowerShell -Command 내부에서 실행할 문자열. 작은따옴표로 감싸고 내부 작은따옴표는 이스케이프.
             var escaped = sshCommand.Replace("'", "''");
-            return $"powershell.exe -NoLogo -NoExit -Command \"& {{ {escaped} }}\"";
+            return $"-NoLogo -NoExit -Command \"& {{ {escaped} }}\"";
         }
 
         /// <summary>
@@ -300,8 +312,9 @@ namespace SochoPutty.Models
         }
 
         /// <summary>
-        /// 현재 세션의 conhost 프로세스가 소유한 최상위 콘솔 창(ConsoleWindowClass)을
-        /// EnumWindows + PID 매칭으로 찾는다. 다중 세션에서도 각각 정확히 구분된다.
+        /// 현재 세션의 콘솔 창(ConsoleWindowClass)을 EnumWindows + PID 매칭으로 찾는다.
+        /// 콘솔 창은 호환성 계층에 의해 루트 클라이언트(powershell) PID를 보고하므로 _process.Id와 일치한다.
+        /// 창은 숨김 상태로 생성되므로 가시성 검사는 하지 않는다. 다중 세션에서도 각각 정확히 구분된다.
         /// </summary>
         private IntPtr FindTerminalWindowByProcess()
         {
@@ -313,9 +326,6 @@ namespace SochoPutty.Models
 
             EnumWindows((hWnd, lParam) =>
             {
-                if (!IsWindowVisible(hWnd))
-                    return true; // 계속 열거
-
                 GetWindowThreadProcessId(hWnd, out uint pid);
                 if (pid != targetPid)
                     return true;
@@ -358,6 +368,8 @@ namespace SochoPutty.Models
                 newStyle &= ~WS_MINIMIZEBOX;  // 최소화 버튼 제거
                 newStyle &= ~WS_MAXIMIZEBOX;  // 최대화 버튼 제거
                 newStyle &= ~WS_BORDER;       // 얇은 테두리 제거
+                newStyle &= ~WS_POPUP;        // 최상위 팝업 스타일 제거
+                newStyle |= WS_CHILD;         // SetParent 전에 자식 스타일 지정(MSDN SetParent 권고)
 
                 DebugLogger.LogDebug($"새로운 콘솔 창 스타일: 0x{newStyle:X8}");
 
@@ -369,16 +381,16 @@ namespace SochoPutty.Models
                 var setParentResult = SetParent(_terminalWindowHandle, parentHandle);
                 DebugLogger.LogDebug($"SetParent 결과: {setParentResult}");
 
-                // 창 표시
-                var showWindowResult = ShowWindow(_terminalWindowHandle, SW_SHOW);
-                DebugLogger.LogDebug($"ShowWindow 결과: {showWindowResult}");
-
                 // 기본 크기로 콘솔 창 설정 (이후 ResizeTerminalWindow에서 정확히 조정됨)
                 DebugLogger.LogDebug("콘솔 창 임베딩 - 기본 크기 800x600 @ (0,0)");
                 var setWindowPosResult = SetWindowPos(_terminalWindowHandle, IntPtr.Zero,
                     0, 0, 800, 600,
                     SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
                 DebugLogger.LogDebug($"SetWindowPos 결과: {setWindowPosResult}");
+
+                // 숨김 상태로 생성된 콘솔 창을 임베딩 완료 후 표시
+                var showWindowResult = ShowWindow(_terminalWindowHandle, SW_SHOW);
+                DebugLogger.LogDebug($"ShowWindow 결과: {showWindowResult}");
 
                 DebugLogger.LogInfo("콘솔 창 임베딩 완료");
                 DebugLogger.LogDebug($"→ SetParent: {setParentResult}, ShowWindow: {showWindowResult}, SetWindowPos: {setWindowPosResult}");
@@ -429,15 +441,88 @@ namespace SochoPutty.Models
 
             try
             {
-                var bringToTopResult = BringWindowToTop(_terminalWindowHandle);
-                var setForegroundResult = SetForegroundWindow(_terminalWindowHandle);
-                var setFocusResult = SetFocus(_terminalWindowHandle);
+                // 콘솔 창은 다른 프로세스 스레드 소유이므로 AttachThreadInput으로
+                // 입력 큐를 연결해야 SetFocus가 동작한다.
+                var targetThreadId = GetWindowThreadProcessId(_terminalWindowHandle, out _);
+                var currentThreadId = GetCurrentThreadId();
 
-                DebugLogger.LogDebug($"콘솔 창 포커스 설정 - BringToTop: {bringToTopResult}, SetForeground: {setForegroundResult}, SetFocus: {setFocusResult}");
+                if (targetThreadId == 0 || targetThreadId == currentThreadId)
+                {
+                    SetFocus(_terminalWindowHandle);
+                    return;
+                }
+
+                AttachThreadInput(currentThreadId, targetThreadId, true);
+                try
+                {
+                    var previousFocus = SetFocus(_terminalWindowHandle);
+                    DebugLogger.LogDebug($"콘솔 창 포커스 설정 - 이전 포커스: {previousFocus}");
+                }
+                finally
+                {
+                    AttachThreadInput(currentThreadId, targetThreadId, false);
+                }
             }
             catch (Exception ex)
             {
                 DebugLogger.LogError("콘솔 창 포커스 설정 중 오류", ex);
+            }
+        }
+
+        /// <summary>
+        /// 임베드된 콘솔 창에 텍스트를 문자 단위(WM_CHAR)로 전송한다.
+        /// 비밀번호가 포함될 수 있으므로 내용은 절대 로그에 남기지 않는다(길이만 기록).
+        /// </summary>
+        public void SendTextToTerminal(string text)
+        {
+            if (_terminalWindowHandle == IntPtr.Zero || _disposed || string.IsNullOrEmpty(text))
+            {
+                DebugLogger.LogDebug($"터미널 텍스트 전송 건너뜀 - 핸들: {_terminalWindowHandle}, 폐기됨: {_disposed}");
+                return;
+            }
+
+            try
+            {
+                var sent = 0;
+                for (var i = 0; i < text.Length; i++)
+                {
+                    var ch = text[i];
+
+                    // 개행 정규화: "\r\n"은 '\r' 1회로, 단독 '\n'도 '\r'로 전송 (Enter 중복 방지)
+                    if (ch == '\r' && i + 1 < text.Length && text[i + 1] == '\n')
+                    {
+                        i++;
+                    }
+                    else if (ch == '\n')
+                    {
+                        ch = '\r';
+                    }
+
+                    if (!PostMessage(_terminalWindowHandle, WM_CHAR, (IntPtr)ch, IntPtr.Zero))
+                    {
+                        // 메시지 큐 포화 등 일시 실패 시 잠시 대기 후 1회 재시도
+                        Thread.Sleep(10);
+                        if (!PostMessage(_terminalWindowHandle, WM_CHAR, (IntPtr)ch, IntPtr.Zero))
+                        {
+                            DebugLogger.LogWarning($"터미널 텍스트 전송 중단: {sent}자 전송 후 PostMessage 실패");
+                            return;
+                        }
+                    }
+
+                    sent++;
+
+                    // 대량 전송 시 메시지 큐 포화 방지
+                    if (sent % 512 == 0)
+                    {
+                        Thread.Sleep(1);
+                    }
+                }
+
+                DebugLogger.LogDebug($"터미널 텍스트 전송 완료: {sent}자");
+            }
+            catch (Exception ex)
+            {
+                DebugLogger.LogError("터미널 텍스트 전송 중 오류", ex);
             }
         }
 
@@ -511,11 +596,15 @@ namespace SochoPutty.Models
                     {
                         try
                         {
-                            processToClose.CloseMainWindow();
-
-                            // 백그라운드에서 정상 종료를 기다림 (UI 블로킹 방지)
-                            var waitTask = Task.Run(() => processToClose.WaitForExit(3000));
-                            var completed = await waitTask.ConfigureAwait(false);
+                            // 임베드된 콘솔은 자식 창이라 MainWindowHandle이 0이므로 CloseMainWindow가 통하지 않는다.
+                            // 이 경우 3초 대기를 생략하고 곧바로 프로세스 트리 종료로 진행한다.
+                            var completed = false;
+                            if (processToClose.MainWindowHandle != IntPtr.Zero && processToClose.CloseMainWindow())
+                            {
+                                // 백그라운드에서 정상 종료를 기다림 (UI 블로킹 방지)
+                                var waitTask = Task.Run(() => processToClose.WaitForExit(3000));
+                                completed = await waitTask.ConfigureAwait(false);
+                            }
 
                             if (!completed)
                             {

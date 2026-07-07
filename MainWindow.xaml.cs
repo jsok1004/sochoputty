@@ -220,6 +220,50 @@ namespace SochoPutty
             // 이 메서드는 더 이상 사용되지 않음 (SplitManager의 "시작" 탭에서 처리)
         }
 
+        /// <summary>
+        /// 현재 활성 분할 영역에서 선택된 터미널 세션을 반환한다. (시작 탭 등 터미널이 아니면 null)
+        /// </summary>
+        private TerminalSession? GetActiveTerminalSession()
+        {
+            var tabControl = splitManager.GetActiveTabControl();
+            if (tabControl?.SelectedItem is TabItem tabItem && tabItem.Tag is TerminalSession session)
+            {
+                return session;
+            }
+            return null;
+        }
+
+        private void SendPassword_Click(object sender, RoutedEventArgs e)
+        {
+            var session = GetActiveTerminalSession();
+            if (session == null)
+            {
+                DebugLogger.LogDebug("비밀번호 입력 무시: 활성 터미널 세션 없음");
+                return;
+            }
+
+            SendStoredPassword(session);
+        }
+
+        /// <summary>
+        /// 연결에 저장된 비밀번호를 터미널에 자동 타이핑한다.
+        /// 잘못된 프롬프트에 오전송되는 사고를 막기 위해 Enter는 사용자가 직접 입력한다.
+        /// </summary>
+        private void SendStoredPassword(TerminalSession session)
+        {
+            var password = session.ConnectionInfo.Password;
+            if (string.IsNullOrEmpty(password))
+            {
+                MessageBox.Show("이 연결에는 저장된 비밀번호가 없습니다.\n연결 관리에서 비밀번호를 저장해주세요.",
+                                "비밀번호 입력", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            DebugLogger.LogInfo($"저장된 비밀번호 입력: {session.ConnectionInfo.Name}");
+            session.SendTextToTerminal(password);
+            session.FocusTerminalWindow();
+        }
+
         private async void CreateNewSession(ConnectionInfo connection)
         {
             DebugLogger.LogInfo($"새 세션 생성 시작: {connection.Name} ({connection.Hostname}:{connection.Port})");
@@ -723,6 +767,15 @@ namespace SochoPutty
 
             stackPanel.Children.Add(titleText);
             stackPanel.Children.Add(closeButton);
+
+            // 탭 헤더 우클릭 컨텍스트 메뉴: 저장된 비밀번호 입력
+            var contextMenu = new ContextMenu();
+            var sendPasswordItem = new MenuItem();
+            sendPasswordItem.Header = "🔑 저장된 비밀번호 입력";
+            sendPasswordItem.IsEnabled = !string.IsNullOrEmpty(session.ConnectionInfo.Password);
+            sendPasswordItem.Click += (s, e) => SendStoredPassword(session);
+            contextMenu.Items.Add(sendPasswordItem);
+            stackPanel.ContextMenu = contextMenu;
 
             return stackPanel;
         }
